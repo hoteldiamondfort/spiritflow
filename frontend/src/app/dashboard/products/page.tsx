@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 const CATEGORIES = [
-  'Beer',
-  'Brandy',
-  'Gin',
-  'Rum',
-  'Soda',
-  'Vodka',
-  'Water',
-  'Whisky',
-  'White Rum',
-  'Wine'
+  'BEER',
+  'BRANDY',
+  'GIN',
+  'RUM',
+  'SODA',
+  'VODKA',
+  'WATER',
+  'WHISKY',
+  'WHITE RUM',
+  'WINE'
 ];
 
 export default function ProductsPage() {
@@ -26,7 +26,7 @@ export default function ProductsPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
-    category_name: 'Beer',
+    category_name: 'BEER',
     product_code: '',
     product_name: '',
     product_alias: '',
@@ -35,7 +35,7 @@ export default function ProductsPage() {
     bottles_per_case: '',
     rate_per_bottle: '',
     product_description: '',
-    product_status: 'active'
+    product_status: 'ACTIVE'
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -95,7 +95,7 @@ export default function ProductsPage() {
     setModalMode('create');
     setEditingProduct(null);
     setFormData({
-      category_name: 'Beer',
+      category_name: 'BEER',
       product_code: '',
       product_name: '',
       product_alias: '',
@@ -104,7 +104,7 @@ export default function ProductsPage() {
       bottles_per_case: '',
       rate_per_bottle: '',
       product_description: '',
-      product_status: 'active'
+      product_status: 'ACTIVE'
     });
     setShowModal(true);
   };
@@ -129,9 +129,16 @@ export default function ProductsPage() {
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
+    let newValue = value;
+
+    // Convert to uppercase for text inputs (except selects)
+    if (e.target.type !== 'select-one') {
+      newValue = value.toUpperCase();
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: newValue
     }));
   };
 
@@ -303,8 +310,8 @@ export default function ProductsPage() {
                 <div style={styles.formGroup}>
                   <label style={styles.label}>STATUS *</label>
                   <select name="product_status" value={formData.product_status} onChange={handleInputChange} required style={styles.input}>
-                    <option value="active">ACTIVE</option>
-                    <option value="disabled">DISABLED</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="DISABLED">DISABLED</option>
                   </select>
                 </div>
               </div>
@@ -557,6 +564,7 @@ const styles = {
     color: '#1a1a1a',
     outline: 'none',
     transition: 'border-color 0.3s',
+    textTransform: 'uppercase',
   } as React.CSSProperties,
 
   modalButtons: {
