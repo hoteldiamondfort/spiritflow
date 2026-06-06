@@ -123,35 +123,28 @@ router.put('/:id', async (req, res) => {
       rate_per_bottle,
       product_description,
       product_status,
-      last_updated_by
+      created_by
     } = req.body;
 
-    // Calculate purchase_rate_per_ml if rate_per_bottle provided
-    let purchase_rate_per_ml = null;
-    if (rate_per_bottle && ml_per_bottle) {
-      purchase_rate_per_ml = rate_per_bottle / ml_per_bottle;
-    }
-
+    // Build update object
     const updateData = {
       category_name,
       product_code,
       product_name,
       product_alias,
       manufacturer_name,
-      ml_per_bottle: ml_per_bottle ? parseInt(ml_per_bottle) : undefined,
-      bottles_per_case: bottles_per_case ? parseInt(bottles_per_case) : undefined,
+      ml_per_bottle: parseInt(ml_per_bottle),
+      bottles_per_case: parseInt(bottles_per_case),
       product_description,
       product_status,
-      last_updated_by,
+      last_updated_by: created_by,
       last_updated_on: new Date().toISOString()
     };
 
-    if (purchase_rate_per_ml) {
-      updateData.purchase_rate_per_ml = parseFloat(purchase_rate_per_ml);
+    // Calculate purchase_rate_per_ml if provided
+    if (rate_per_bottle && ml_per_bottle) {
+      updateData.purchase_rate_per_ml = parseFloat(rate_per_bottle / ml_per_bottle);
     }
-
-    // Remove undefined values
-    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
     const { data, error } = await supabase
       .from('products')
