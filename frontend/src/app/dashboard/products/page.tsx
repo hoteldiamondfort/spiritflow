@@ -339,15 +339,15 @@ const styles = {
     backgroundColor: '#ffffff',
     fontFamily: '"Courier New", Courier, monospace',
     color: '#1a1a1a',
-    padding: 'clamp(20px, 4vw, 32px)',
+    padding: 'clamp(16px, 3vw, 24px)',
   } as React.CSSProperties,
 
   pageHeader: {
-    marginBottom: 'clamp(20px, 3vw, 28px)',
+    marginBottom: 'clamp(16px, 3vw, 24px)',
   } as React.CSSProperties,
 
   pageTitle: {
-    fontSize: 'clamp(20px, 3.5vw, 28px)',
+    fontSize: 'clamp(18px, 3.5vw, 28px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
     margin: 0,
@@ -356,27 +356,27 @@ const styles = {
   contentCard: {
     backgroundColor: '#ffffff',
     border: '1px solid #e0e0e0',
-    padding: 'clamp(20px, 3vw, 28px)',
+    padding: 'clamp(16px, 3vw, 24px)',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
   } as React.CSSProperties,
 
   toolbar: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    display: 'flex',
+    flexDirection: 'column',
     gap: 'clamp(12px, 2vw, 16px)',
-    marginBottom: 'clamp(20px, 3vw, 28px)',
-    alignItems: 'end',
+    marginBottom: 'clamp(20px, 3vw, 24px)',
   } as React.CSSProperties,
 
   searchContainer: {
     display: 'flex',
     gap: 'clamp(8px, 1.5vw, 12px)',
     flexWrap: 'wrap',
+    width: '100%',
   } as React.CSSProperties,
 
   searchInput: {
     flex: 1,
-    minWidth: '200px',
+    minWidth: '150px',
     padding: 'clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px)',
     fontSize: 'clamp(11px, 1.3vw, 13px)',
     border: '1px solid #e0e0e0',
@@ -388,8 +388,8 @@ const styles = {
   } as React.CSSProperties,
 
   searchBtn: {
-    padding: 'clamp(8px, 1.5vw, 12px) clamp(16px, 2vw, 20px)',
-    fontSize: 'clamp(11px, 1.3vw, 12px)',
+    padding: 'clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px)',
+    fontSize: 'clamp(10px, 1.2vw, 12px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
     color: '#ffffff',
@@ -398,10 +398,11 @@ const styles = {
     cursor: 'pointer',
     fontFamily: '"Courier New", Courier, monospace',
     transition: 'all 0.3s',
+    whiteSpace: 'nowrap',
   } as React.CSSProperties,
 
   createBtn: {
-    padding: 'clamp(8px, 1.5vw, 12px) clamp(16px, 2vw, 20px)',
+    padding: 'clamp(10px, 1.5vw, 14px) clamp(16px, 2vw, 20px)',
     fontSize: 'clamp(11px, 1.3vw, 12px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
@@ -411,12 +412,13 @@ const styles = {
     cursor: 'pointer',
     fontFamily: '"Courier New", Courier, monospace',
     transition: 'all 0.3s',
-    whiteSpace: 'nowrap',
+    width: '100%',
   } as React.CSSProperties,
 
   tableContainer: {
     overflowX: 'auto',
     marginBottom: 'clamp(16px, 2vw, 20px)',
+    borderRadius: '4px',
   } as React.CSSProperties,
 
   table: {
@@ -431,7 +433,7 @@ const styles = {
   } as React.CSSProperties,
 
   th: {
-    padding: 'clamp(12px, 2vw, 16px)',
+    padding: 'clamp(10px, 2vw, 14px)',
     textAlign: 'left',
     fontWeight: 'bold',
     letterSpacing: '1px',
@@ -445,13 +447,13 @@ const styles = {
   } as React.CSSProperties,
 
   td: {
-    padding: 'clamp(12px, 2vw, 16px)',
+    padding: 'clamp(10px, 2vw, 14px)',
     color: '#595959',
   } as React.CSSProperties,
 
   editBtn: {
-    padding: 'clamp(6px, 1vw, 8px) clamp(12px, 1.5vw, 16px)',
-    fontSize: 'clamp(10px, 1.1vw, 11px)',
+    padding: 'clamp(6px, 1vw, 8px) clamp(10px, 1.5vw, 14px)',
+    fontSize: 'clamp(9px, 1.1vw, 11px)',
     fontWeight: 'bold',
     letterSpacing: '0.5px',
     color: '#ffffff',
@@ -460,6 +462,7 @@ const styles = {
     cursor: 'pointer',
     fontFamily: '"Courier New", Courier, monospace',
     transition: 'all 0.3s',
+    whiteSpace: 'nowrap',
   } as React.CSSProperties,
 
   loadingText: {
@@ -481,6 +484,7 @@ const styles = {
     color: '#8a8a8a',
     letterSpacing: '0.5px',
     textAlign: 'right',
+    marginTop: 'clamp(12px, 2vw, 16px)',
   } as React.CSSProperties,
 
   modalOverlay: {
@@ -494,15 +498,16 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    padding: '16px',
   } as React.CSSProperties,
 
   modal: {
     backgroundColor: '#ffffff',
     border: '1px solid #e0e0e0',
-    maxWidth: '90vw',
+    maxWidth: '600px',
     maxHeight: '90vh',
     overflow: 'auto',
-    width: '600px',
+    width: '100%',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
   } as React.CSSProperties,
 
@@ -510,13 +515,13 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 'clamp(16px, 2vw, 20px)',
+    padding: 'clamp(14px, 2vw, 18px)',
     borderBottom: '1px solid #e0e0e0',
     backgroundColor: '#f8f8f8',
   } as React.CSSProperties,
 
   modalTitle: {
-    fontSize: 'clamp(16px, 2.5vw, 20px)',
+    fontSize: 'clamp(14px, 2.5vw, 18px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
     margin: 0,
@@ -532,12 +537,12 @@ const styles = {
   } as React.CSSProperties,
 
   form: {
-    padding: 'clamp(16px, 2vw, 20px)',
+    padding: 'clamp(14px, 2vw, 18px)',
   } as React.CSSProperties,
 
   formGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
     gap: 'clamp(12px, 2vw, 16px)',
     marginBottom: 'clamp(16px, 2vw, 20px)',
   } as React.CSSProperties,
@@ -549,7 +554,7 @@ const styles = {
   } as React.CSSProperties,
 
   label: {
-    fontSize: 'clamp(11px, 1.2vw, 12px)',
+    fontSize: 'clamp(10px, 1.2vw, 11px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
     color: '#1a1a1a',
@@ -574,11 +579,12 @@ const styles = {
     justifyContent: 'flex-end',
     paddingTop: 'clamp(12px, 2vw, 16px)',
     borderTop: '1px solid #e0e0e0',
+    flexWrap: 'wrap',
   } as React.CSSProperties,
 
   cancelBtn: {
-    padding: 'clamp(8px, 1.5vw, 12px) clamp(16px, 2vw, 20px)',
-    fontSize: 'clamp(11px, 1.3vw, 12px)',
+    padding: 'clamp(8px, 1.5vw, 12px) clamp(14px, 2vw, 18px)',
+    fontSize: 'clamp(10px, 1.2vw, 11px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
     color: '#1a1a1a',
@@ -590,8 +596,8 @@ const styles = {
   } as React.CSSProperties,
 
   submitBtn: {
-    padding: 'clamp(8px, 1.5vw, 12px) clamp(16px, 2vw, 20px)',
-    fontSize: 'clamp(11px, 1.3vw, 12px)',
+    padding: 'clamp(8px, 1.5vw, 12px) clamp(14px, 2vw, 18px)',
+    fontSize: 'clamp(10px, 1.2vw, 11px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
     color: '#ffffff',
