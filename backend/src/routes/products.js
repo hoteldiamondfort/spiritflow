@@ -1,0 +1,177 @@
+const express = require('express');
+const supabase = require('../config/supabase');
+
+const router = express.Router();
+
+// GET all products
+router.get('/', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_on', { ascending: false });
+
+    if (error) {
+      return res.status(400).json({ status: 'error', message: error.message });
+    }
+
+    res.json({
+      status: 'success',
+      message: 'Products fetched successfully',
+      count: data.length,
+      data: data
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+// GET product by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('product_id', req.params.id)
+      .single();
+
+    if (error) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+
+    res.json({
+      status: 'success',
+      message: 'Product fetched successfully',
+      data: data
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+// CREATE product
+router.post('/', async (req, res) => {
+  try {
+    const {
+      category_name,
+      product_code,
+      product_name,
+      product_alias,
+      manufacturer_name,
+      ml_per_bottle,
+      bottles_per_case,
+      rate_per_bottle,
+      product_description,
+      product_status,
+      created_by
+    } = req.body;
+
+    // Validate mandatory fields
+    if (!category_name || !product_name || !product_alias || !ml_per_bottle || !bottles_per_case || !rate_per_bottle || !product_status) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Missing required fields: category_name, product_name, product_alias, ml_per_bottle, bottles_per_case, rate_per_bottle, product_status'
+      });
+    }
+
+    // Calculate purchase_rate_per_ml
+    const purchase_rate_per_ml = rate_per_bottle / ml_per_bottle;
+
+    const { data, error } = await supabase
+      .from('products')
+      .insert([{
+        category_name,
+        product_code,
+        product_name,
+        product_alias,
+        manufacturer_name,
+        ml_per_bottle: parseInt(ml_per_bottle),
+        bottles_per_case: parseInt(bottles_per_case),
+        purchase_rate_per_ml: parseFloat(purchase_rate_per_ml),
+        product_description,
+        product_status,
+        created_by
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ status: 'error', message: error.message });
+    }
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Product created successfully',
+      data: data
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+// UPDATE product
+router.put('/:id', async (req, res) => {
+  try {
+    const {
+      category_name,
+      product_code,
+      product_name,
+      product_alias,
+      manufacturer_name,
+      ml_per_bottle,
+      bottles_per_case,
+      rate_per_bottle,
+      product_description,
+      product_status,
+      last_updated_by
+    } = req.body;
+
+    // Calculate purchase_rate_per_ml if rate_per_bottle provided
+    let purchase_rate_per_ml = null;
+    if (rate_per_bottle && ml_per_bottle) {
+      purchase_rate_per_ml = rate_per_bottle / ml_per_bottle;
+    }
+
+    const updateData = {
+      category_name,
+      product_code,
+      product_name,
+      product_alias,
+      manufacturer_name,
+      ml_per_bottle: ml_per_bottle ? parseInt(ml_per_bottle) : undefined,
+      bottles_per_case: bottles_per_case ? parseInt(bottles_per_case) : undefined,
+      product_description,
+      product_status,
+      last_updated_by,
+      last_updated_on: new Date().toISOString()
+    };
+
+    if (purchase_rate_per_ml) {
+      updateData.purchase_rate_per_ml = parseFloat(purchase_rate_per_ml);
+    }
+
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    const { data, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('product_id', req.params.id)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ status: 'error', message: error.message });
+    }
+
+    res.json({
+      status: 'success',
+      message: 'Product updated successfully',
+      data: data
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+module.exports = router;
