@@ -1,8 +1,15 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors');
 
 const app = express();
+
+// Enable CORS
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://spiritflow.vercel.app', 'https://spirit-flow.vercel.app'],
+  credentials: true
+}));
 
 app.use(express.json());
 
