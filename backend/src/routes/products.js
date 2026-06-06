@@ -3,6 +3,19 @@ const supabase = require('../config/supabase');
 
 const router = express.Router();
 
+// Helper function to convert to uppercase
+const toUpperCase = (obj) => {
+  const result = {};
+  Object.keys(obj).forEach(key => {
+    if (typeof obj[key] === 'string') {
+      result[key] = obj[key].toUpperCase();
+    } else {
+      result[key] = obj[key];
+    }
+  });
+  return result;
+};
+
 // GET all products
 router.get('/', async (req, res) => {
   try {
@@ -74,22 +87,33 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Convert all strings to uppercase
+    const uppercaseData = {
+      category_name: category_name.toUpperCase(),
+      product_code: product_code ? product_code.toUpperCase() : null,
+      product_name: product_name.toUpperCase(),
+      product_alias: product_alias.toUpperCase(),
+      manufacturer_name: manufacturer_name ? manufacturer_name.toUpperCase() : null,
+      product_description: product_description ? product_description.toUpperCase() : null,
+      product_status: product_status.toUpperCase()
+    };
+
     // Calculate purchase_rate_per_ml
     const purchase_rate_per_ml = rate_per_bottle / ml_per_bottle;
 
     const { data, error } = await supabase
       .from('products')
       .insert([{
-        category_name,
-        product_code,
-        product_name,
-        product_alias,
-        manufacturer_name,
+        category_name: uppercaseData.category_name,
+        product_code: uppercaseData.product_code,
+        product_name: uppercaseData.product_name,
+        product_alias: uppercaseData.product_alias,
+        manufacturer_name: uppercaseData.manufacturer_name,
         ml_per_bottle: parseInt(ml_per_bottle),
         bottles_per_case: parseInt(bottles_per_case),
         purchase_rate_per_ml: parseFloat(purchase_rate_per_ml),
-        product_description,
-        product_status,
+        product_description: uppercaseData.product_description,
+        product_status: uppercaseData.product_status,
         created_by
       }])
       .select()
@@ -126,17 +150,28 @@ router.put('/:id', async (req, res) => {
       created_by
     } = req.body;
 
+    // Convert all strings to uppercase
+    const uppercaseData = {
+      category_name: category_name.toUpperCase(),
+      product_code: product_code ? product_code.toUpperCase() : null,
+      product_name: product_name.toUpperCase(),
+      product_alias: product_alias.toUpperCase(),
+      manufacturer_name: manufacturer_name ? manufacturer_name.toUpperCase() : null,
+      product_description: product_description ? product_description.toUpperCase() : null,
+      product_status: product_status.toUpperCase()
+    };
+
     // Build update object
     const updateData = {
-      category_name,
-      product_code,
-      product_name,
-      product_alias,
-      manufacturer_name,
+      category_name: uppercaseData.category_name,
+      product_code: uppercaseData.product_code,
+      product_name: uppercaseData.product_name,
+      product_alias: uppercaseData.product_alias,
+      manufacturer_name: uppercaseData.manufacturer_name,
       ml_per_bottle: parseInt(ml_per_bottle),
       bottles_per_case: parseInt(bottles_per_case),
-      product_description,
-      product_status,
+      product_description: uppercaseData.product_description,
+      product_status: uppercaseData.product_status,
       last_updated_by: created_by,
       last_updated_on: new Date().toISOString()
     };

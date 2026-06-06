@@ -3,6 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+const CATEGORIES = [
+  'Beer',
+  'Brandy',
+  'Gin',
+  'Rum',
+  'Soda',
+  'Vodka',
+  'Water',
+  'Whisky',
+  'White Rum',
+  'Wine'
+];
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
@@ -13,7 +26,7 @@ export default function ProductsPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
-    category_name: '',
+    category_name: 'Beer',
     product_code: '',
     product_name: '',
     product_alias: '',
@@ -82,7 +95,7 @@ export default function ProductsPage() {
     setModalMode('create');
     setEditingProduct(null);
     setFormData({
-      category_name: '',
+      category_name: 'Beer',
       product_code: '',
       product_name: '',
       product_alias: '',
@@ -178,12 +191,12 @@ export default function ProductsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               style={styles.searchInput}
             />
-            <button onClick={handleSearch} style={styles.searchBtn}>
+            <button onClick={handleSearch} style={styles.searchBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#333'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1a1a1a'}>
               SEARCH
             </button>
           </div>
 
-          <button onClick={handleCreateClick} style={styles.createBtn}>
+          <button onClick={handleCreateClick} style={styles.createBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}>
             + CREATE NEW PRODUCT
           </button>
         </div>
@@ -240,7 +253,11 @@ export default function ProductsPage() {
               <div style={styles.formGrid}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>CATEGORY NAME *</label>
-                  <input type="text" name="category_name" value={formData.category_name} onChange={handleInputChange} required style={styles.input} />
+                  <select name="category_name" value={formData.category_name} onChange={handleInputChange} required style={styles.input}>
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div style={styles.formGroup}>
@@ -293,10 +310,10 @@ export default function ProductsPage() {
               </div>
 
               <div style={styles.modalButtons}>
-                <button type="button" onClick={() => setShowModal(false)} disabled={submitting} style={styles.cancelBtn}>
+                <button type="button" onClick={() => setShowModal(false)} disabled={submitting} style={styles.cancelBtn} onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#d0d0d0')} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e0e0e0'}>
                   CANCEL
                 </button>
-                <button type="submit" disabled={submitting} style={styles.submitBtn}>
+                <button type="submit" disabled={submitting} style={styles.submitBtn} onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#1976D2')} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}>
                   {submitting ? 'SAVING...' : (modalMode === 'create' ? 'CREATE' : 'UPDATE')}
                 </button>
               </div>
