@@ -11,7 +11,6 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
-      'https://spiritflow.vercel.app',
       'https://spirit-flow.vercel.app'
     ];
     
@@ -29,7 +28,7 @@ app.use(cors({
 }));
 
 // Handle preflight requests explicitly
-app.options('*', cors());
+//app.options('*', cors());
 
 // Middleware
 app.use(express.json());
