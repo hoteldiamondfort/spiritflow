@@ -51,6 +51,13 @@ export default function ProductsPage() {
 
     setUser(JSON.parse(userData));
     fetchProducts();
+
+    // Poll for updates every 5 seconds
+    const interval = setInterval(() => {
+      fetchProducts();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [router]);
 
   const fetchProducts = async () => {
@@ -131,7 +138,6 @@ export default function ProductsPage() {
     const { name, value } = e.target;
     let newValue = value;
 
-    // Convert to uppercase for text inputs (except selects)
     if (e.target.type !== 'select-one') {
       newValue = value.toUpperCase();
     }
