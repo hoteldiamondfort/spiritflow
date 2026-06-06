@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import DashboardLayout from '@/components/DashboardLayout';
 
 const CATEGORIES = [
   'BEER',
@@ -131,7 +132,6 @@ export default function ProductsPage() {
     const { name, value } = e.target;
     let newValue = value;
 
-    // Convert to uppercase for text inputs (except selects)
     if (e.target.type !== 'select-one') {
       newValue = value.toUpperCase();
     }
@@ -183,158 +183,159 @@ export default function ProductsPage() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.pageHeader}>
-        <h1 style={styles.pageTitle}>PRODUCT PROFILE</h1>
-      </div>
+    <DashboardLayout user={user}>
+      <div style={styles.container}>
+        <div style={styles.pageHeader}>
+          <h1 style={styles.pageTitle}>PRODUCT PROFILE</h1>
+        </div>
 
-      <div style={styles.contentCard}>
-        <div style={styles.toolbar}>
-          <div style={styles.searchContainer}>
-            <input
-              type="text"
-              placeholder="SEARCH BY CATEGORY, NAME, OR ALIAS..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
-            />
-            <button onClick={handleSearch} style={styles.searchBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#333'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1a1a1a'}>
-              SEARCH
+        <div style={styles.contentCard}>
+          <div style={styles.toolbar}>
+            <div style={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="SEARCH BY CATEGORY, NAME, OR ALIAS..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+              <button onClick={handleSearch} style={styles.searchBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#333'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1a1a1a'}>
+                SEARCH
+              </button>
+            </div>
+
+            <button onClick={handleCreateClick} style={styles.createBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}>
+              + CREATE NEW PRODUCT
             </button>
           </div>
 
-          <button onClick={handleCreateClick} style={styles.createBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}>
-            + CREATE NEW PRODUCT
-          </button>
+          {loading ? (
+            <div style={styles.loadingText}>Loading products...</div>
+          ) : filteredProducts.length === 0 ? (
+            <div style={styles.emptyText}>NO PRODUCTS FOUND</div>
+          ) : (
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.tableHeader}>
+                    <th style={styles.th}>CATEGORY</th>
+                    <th style={styles.th}>PRODUCT ALIAS</th>
+                    <th style={styles.th}>DESCRIPTION</th>
+                    <th style={styles.th}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((product) => (
+                    <tr key={product.product_id} style={styles.tableRow} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}>
+                      <td style={styles.td}>{product.category_name}</td>
+                      <td style={styles.td}>{product.product_alias}</td>
+                      <td style={styles.td}>{product.product_description || '-'}</td>
+                      <td style={styles.td}>
+                        <button onClick={() => handleEditClick(product)} style={styles.editBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F57C00'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF9800'}>
+                          EDIT
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={styles.resultCount}>
+            SHOWING {filteredProducts.length} OF {products.length} PRODUCTS
+          </div>
         </div>
 
-        {loading ? (
-          <div style={styles.loadingText}>Loading products...</div>
-        ) : filteredProducts.length === 0 ? (
-          <div style={styles.emptyText}>NO PRODUCTS FOUND</div>
-        ) : (
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.tableHeader}>
-                  <th style={styles.th}>CATEGORY</th>
-                  <th style={styles.th}>PRODUCT ALIAS</th>
-                  <th style={styles.th}>DESCRIPTION</th>
-                  <th style={styles.th}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
-                  <tr key={product.product_id} style={styles.tableRow} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}>
-                    <td style={styles.td}>{product.category_name}</td>
-                    <td style={styles.td}>{product.product_alias}</td>
-                    <td style={styles.td}>{product.product_description || '-'}</td>
-                    <td style={styles.td}>
-                      <button onClick={() => handleEditClick(product)} style={styles.editBtn} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F57C00'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FF9800'}>
-                        EDIT
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {showModal && (
+          <div style={styles.modalOverlay} onClick={() => !submitting && setShowModal(false)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.modalHeader}>
+                <h2 style={styles.modalTitle}>
+                  {modalMode === 'create' ? 'CREATE NEW PRODUCT' : 'EDIT PRODUCT'}
+                </h2>
+                <button onClick={() => !submitting && setShowModal(false)} style={styles.closeBtn}>✕</button>
+              </div>
+
+              <form onSubmit={handleSubmit} style={styles.form}>
+                <div style={styles.formGrid}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>CATEGORY NAME *</label>
+                    <select name="category_name" value={formData.category_name} onChange={handleInputChange} required style={styles.input}>
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>PRODUCT CODE</label>
+                    <input type="text" name="product_code" value={formData.product_code} onChange={handleInputChange} style={styles.input} />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>PRODUCT NAME *</label>
+                    <input type="text" name="product_name" value={formData.product_name} onChange={handleInputChange} required style={styles.input} />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>PRODUCT ALIAS *</label>
+                    <input type="text" name="product_alias" value={formData.product_alias} onChange={handleInputChange} required style={styles.input} />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>MANUFACTURER NAME</label>
+                    <input type="text" name="manufacturer_name" value={formData.manufacturer_name} onChange={handleInputChange} style={styles.input} />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>ML PER BOTTLE *</label>
+                    <input type="number" name="ml_per_bottle" value={formData.ml_per_bottle} onChange={handleInputChange} required style={styles.input} />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>BOTTLES PER CASE *</label>
+                    <input type="number" name="bottles_per_case" value={formData.bottles_per_case} onChange={handleInputChange} required style={styles.input} />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>RATE PER BOTTLE *</label>
+                    <input type="number" step="0.01" name="rate_per_bottle" value={formData.rate_per_bottle} onChange={handleInputChange} required style={styles.input} />
+                  </div>
+
+                  <div style={{...styles.formGroup, gridColumn: '1 / -1'}}>
+                    <label style={styles.label}>PRODUCT DESCRIPTION</label>
+                    <textarea name="product_description" value={formData.product_description} onChange={handleInputChange} style={{...styles.input, minHeight: '80px', fontFamily: '"Courier New", Courier, monospace'}} />
+                  </div>
+
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>STATUS *</label>
+                    <select name="product_status" value={formData.product_status} onChange={handleInputChange} required style={styles.input}>
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="DISABLED">DISABLED</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={styles.modalButtons}>
+                  <button type="button" onClick={() => setShowModal(false)} disabled={submitting} style={styles.cancelBtn} onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#d0d0d0')} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e0e0e0'}>
+                    CANCEL
+                  </button>
+                  <button type="submit" disabled={submitting} style={styles.submitBtn} onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#1976D2')} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}>
+                    {submitting ? 'SAVING...' : (modalMode === 'create' ? 'CREATE' : 'UPDATE')}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
-
-        <div style={styles.resultCount}>
-          SHOWING {filteredProducts.length} OF {products.length} PRODUCTS
-        </div>
       </div>
-
-      {showModal && (
-        <div style={styles.modalOverlay} onClick={() => !submitting && setShowModal(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>
-                {modalMode === 'create' ? 'CREATE NEW PRODUCT' : 'EDIT PRODUCT'}
-              </h2>
-              <button onClick={() => !submitting && setShowModal(false)} style={styles.closeBtn}>✕</button>
-            </div>
-
-            <form onSubmit={handleSubmit} style={styles.form}>
-              <div style={styles.formGrid}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>CATEGORY NAME *</label>
-                  <select name="category_name" value={formData.category_name} onChange={handleInputChange} required style={styles.input}>
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>PRODUCT CODE</label>
-                  <input type="text" name="product_code" value={formData.product_code} onChange={handleInputChange} style={styles.input} />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>PRODUCT NAME *</label>
-                  <input type="text" name="product_name" value={formData.product_name} onChange={handleInputChange} required style={styles.input} />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>PRODUCT ALIAS *</label>
-                  <input type="text" name="product_alias" value={formData.product_alias} onChange={handleInputChange} required style={styles.input} />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>MANUFACTURER NAME</label>
-                  <input type="text" name="manufacturer_name" value={formData.manufacturer_name} onChange={handleInputChange} style={styles.input} />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>ML PER BOTTLE *</label>
-                  <input type="number" name="ml_per_bottle" value={formData.ml_per_bottle} onChange={handleInputChange} required style={styles.input} />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>BOTTLES PER CASE *</label>
-                  <input type="number" name="bottles_per_case" value={formData.bottles_per_case} onChange={handleInputChange} required style={styles.input} />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>RATE PER BOTTLE *</label>
-                  <input type="number" step="0.01" name="rate_per_bottle" value={formData.rate_per_bottle} onChange={handleInputChange} required style={styles.input} />
-                </div>
-
-                <div style={{...styles.formGroup, gridColumn: '1 / -1'}}>
-                  <label style={styles.label}>PRODUCT DESCRIPTION</label>
-                  <textarea name="product_description" value={formData.product_description} onChange={handleInputChange} style={{...styles.input, minHeight: '80px', fontFamily: '"Courier New", Courier, monospace'}} />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>STATUS *</label>
-                  <select name="product_status" value={formData.product_status} onChange={handleInputChange} required style={styles.input}>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="DISABLED">DISABLED</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={styles.modalButtons}>
-                <button type="button" onClick={() => setShowModal(false)} disabled={submitting} style={styles.cancelBtn} onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#d0d0d0')} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e0e0e0'}>
-                  CANCEL
-                </button>
-                <button type="submit" disabled={submitting} style={styles.submitBtn} onMouseEnter={(e) => !submitting && (e.currentTarget.style.backgroundColor = '#1976D2')} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}>
-                  {submitting ? 'SAVING...' : (modalMode === 'create' ? 'CREATE' : 'UPDATE')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </DashboardLayout>
   );
 }
 
 const styles = {
   container: {
-    minHeight: '100vh',
     backgroundColor: '#ffffff',
     fontFamily: '"Courier New", Courier, monospace',
     color: '#1a1a1a',
