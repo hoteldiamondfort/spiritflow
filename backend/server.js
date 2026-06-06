@@ -27,9 +27,6 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// Handle preflight requests explicitly
-//app.options('*', cors());
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -50,6 +47,16 @@ try {
   console.log('✅ Auth routes loaded successfully');
 } catch (error) {
   console.error('❌ Failed to load auth routes:', error.message);
+  console.error(error.stack);
+}
+
+// Load products routes with error handling
+try {
+  const productsRoutes = require('./src/routes/products');
+  app.use('/api/products', productsRoutes);
+  console.log('✅ Products routes loaded successfully');
+} catch (error) {
+  console.error('❌ Failed to load products routes:', error.message);
   console.error(error.stack);
 }
 
