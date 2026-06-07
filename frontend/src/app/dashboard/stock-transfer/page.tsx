@@ -31,8 +31,21 @@ interface Product {
   bottles_per_case: number;
 }
 
+interface StockData {
+  product_id: string;
+  product_name: string;
+  product_alias: string;
+  total_quantity_ml: number;
+  breakdown: {
+    warehouse: number;
+    druvam: number;
+    spadikam: number;
+  };
+}
+
 export default function StockTransferPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [stockData, setStockData] = useState<{[key: string]: StockData}>({});
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
@@ -61,22 +74,40 @@ export default function StockTransferPage() {
     }
 
     setUser(JSON.parse(userData));
-    fetchProducts();
+    fetchProductsAndStock();
   }, [router]);
 
-  const fetchProducts = async () => {
+  // Fetch products and all stock in ONE call
+  const fetchProductsAndStock = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+      
+      // Fetch products
+      const productsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
         headers: { 'Content-Type': 'application/json' }
       });
+      const productsData = await productsResponse.json();
+      
+      // Fetch all stock
+      const stockResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stock/total`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const stockDataResponse = await stockResponse.json();
 
-      const data = await response.json();
-      if (data.status === 'success') {
-        setProducts(data.data);
+      if (productsData.status === 'success') {
+        setProducts(productsData.data);
+      }
+
+      if (stockDataResponse.status === 'success') {
+        // Create lookup map: { product_id → stock data }
+        const stockMap: {[key: string]: StockData} = {};
+        stockDataResponse.data.forEach((stock: StockData) => {
+          stockMap[stock.product_id] = stock;
+        });
+        setStockData(stockMap);
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -95,6 +126,14 @@ export default function StockTransferPage() {
     const casesML = cases * product.bottles_per_case * product.ml_per_bottle;
     const bottlesML = bottles * product.ml_per_bottle;
     return casesML + bottlesML;
+  };
+
+  // Helper function to convert ML to cases + bottles
+  const convertFromML = (product: Product, totalML: number) => {
+    const totalBottles = Math.floor(totalML / product.ml_per_bottle);
+    const cases = Math.floor(totalBottles / product.bottles_per_case);
+    const bottles = totalBottles % product.bottles_per_case;
+    return { cases, bottles };
   };
 
   const handleSelectProduct = (product: Product) => {
@@ -121,6 +160,17 @@ export default function StockTransferPage() {
     const exists = transferItems.find(item => item.product_id === selectedProduct.product_id);
     if (exists) {
       alert('Product already added. Please remove and add again with new quantity.');
+      return;
+    }
+
+    // Validate against available stock
+    const stock = stockData[selectedProduct.product_id];
+    const requestedML = convertToML(selectedProduct, cases, bottles);
+    
+    if (requestedML > stock.total_quantity_ml) {
+      alert(
+        `Insufficient stock! Requested: ${requestedML} ML, Available: ${stock.total_quantity_ml} ML`
+      );
       return;
     }
 
@@ -259,20 +309,33 @@ Ready to confirm?
                   
                   {showDropdown && searchTerm && filteredProducts.length > 0 && (
                     <div style={styles.dropdown}>
-                      {filteredProducts.slice(0, 10).map(product => (
-                        <div 
-                          key={product.product_id}
-                          onClick={() => handleSelectProduct(product)}
-                          style={styles.dropdownItem}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
-                        >
-                          <div style={styles.productName}>{product.product_alias}</div>
-                          <div style={styles.productAlias}>
-                            {product.product_name} | {product.ml_per_bottle}ML × {product.bottles_per_case}
+                      {filteredProducts.slice(0, 10).map(product => {
+                        const stock = stockData[product.product_id];
+                        const { cases, bottles } = convertFromML(product, stock?.total_quantity_ml || 0);
+                        
+                        return (
+                          <div 
+                            key={product.product_id}
+                            onClick={() => handleSelectProduct(product)}
+                            style={styles.dropdownItem}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                          >
+                            <div style={styles.productName}>{product.product_alias}</div>
+                            <div style={styles.productAlias}>
+                              {product.product_name}
+                            </div>
+                            {stock && (
+                              <div style={styles.stockInfo}>
+                                {cases} Cases, {bottles} Bottles Available in {Object.entries(stock.breakdown)
+                                  .filter(([_, qty]) => qty > 0)
+                                  .map(([point]) => point.charAt(0).toUpperCase() + point.slice(1))
+                                  .join(', ')}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -538,7 +601,7 @@ const styles = {
     backgroundColor: '#ffffff',
     border: '1px solid #e0e0e0',
     borderTop: 'none',
-    maxHeight: '250px',
+    maxHeight: '400px',
     overflowY: 'auto',
     zIndex: 100,
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
@@ -560,6 +623,16 @@ const styles = {
   productAlias: {
     fontSize: 'clamp(10px, 1.1vw, 11px)',
     color: '#8a8a8a',
+    marginBottom: '4px',
+  } as React.CSSProperties,
+
+  stockInfo: {
+    fontSize: 'clamp(9px, 1vw, 10px)',
+    color: '#2e7d32',
+    fontWeight: 'bold',
+    marginTop: '4px',
+    padding: '4px 0',
+    borderTop: '1px solid #e0e0e0',
   } as React.CSSProperties,
 
   selectedProductInfo: {

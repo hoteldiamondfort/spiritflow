@@ -60,6 +60,16 @@ try {
   console.error(error.stack);
 }
 
+// Load stock routes with error handling
+try {
+  const stockRoutes = require('./src/routes/stock');
+  app.use('/api/stock', stockRoutes);
+  console.log('✅ Stock routes loaded successfully');
+} catch (error) {
+  console.error('❌ Failed to load stock routes:', error.message);
+  console.error(error.stack);
+}
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
