@@ -168,9 +168,7 @@ export default function StockTransferPage() {
     const requestedML = convertToML(selectedProduct, cases, bottles);
     
     if (requestedML > stock.total_quantity_ml) {
-      alert(
-        `Insufficient stock! Requested: ${requestedML} ML, Available: ${stock.total_quantity_ml} ML`
-      );
+      alert('Insufficient stock');
       return;
     }
 
@@ -312,6 +310,7 @@ Ready to confirm?
                       {filteredProducts.slice(0, 10).map(product => {
                         const stock = stockData[product.product_id];
                         const { cases, bottles } = convertFromML(product, stock?.total_quantity_ml || 0);
+                        const hasStock = stock?.total_quantity_ml > 0;
                         
                         return (
                           <div 
@@ -326,11 +325,14 @@ Ready to confirm?
                               {product.product_name}
                             </div>
                             {stock && (
-                              <div style={styles.stockInfo}>
+                              <div style={{
+                                ...styles.stockInfo,
+                                color: hasStock ? '#2e7d32' : '#c62828'
+                              }}>
                                 {cases} Cases, {bottles} Bottles Available in {Object.entries(stock.breakdown)
                                   .filter(([_, qty]) => qty > 0)
                                   .map(([point]) => point.charAt(0).toUpperCase() + point.slice(1))
-                                  .join(', ')}
+                                  .join(', ') || 'No Stock'}
                               </div>
                             )}
                           </div>
@@ -627,8 +629,7 @@ const styles = {
   } as React.CSSProperties,
 
   stockInfo: {
-    fontSize: 'clamp(9px, 1vw, 10px)',
-    color: '#2e7d32',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
     fontWeight: 'bold',
     marginTop: '4px',
     padding: '4px 0',
