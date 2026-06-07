@@ -8,167 +8,174 @@ interface DashboardLayoutProps {
   user?: any;
 }
 
-export default function DashboardLayout({ children, user }: DashboardLayoutProps) {
-  const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [profileExpanded, setProfileExpanded] = useState(false);
+export default function DashboardLayout({ children, user: initialUser }: DashboardLayoutProps) {
+  const [user, setUser] = useState<any>(initialUser);
+  const [menuOpen, setMenuOpen] = useState(true);
+  const [profileExpanded, setProfileExpanded] = useState(true);
   const [stockExpanded, setStockExpanded] = useState(false);
+  const [loading, setLoading] = useState(!initialUser);
+  const router = useRouter();
 
   useEffect(() => {
+    if (initialUser) {
+      setUser(initialUser);
+      setLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+
+    if (!token || !userData) {
+      router.push('/login');
+      return;
+    }
+
+    setUser(JSON.parse(userData));
+    setLoading(false);
+
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setSidebarOpen(false);
+        setMenuOpen(false);
+      } else {
+        setMenuOpen(true);
       }
     };
 
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [initialUser, router]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/login');
+    router.push('/');
   };
+
+  const handleLogoClick = () => {
+    router.push('/dashboard');
+  };
+
+  if (loading) {
+    return <div style={styles.loadingContainer}>Loading...</div>;
+  }
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={styles.hamburger}
-          >
-            ☰
+          <button onClick={handleLogoClick} style={styles.logoBtn}>
+            <h1 style={styles.logo}>
+              SPIRIT FLOW
+              <span style={styles.underscoreBlue}>_</span>
+            </h1>
           </button>
-          <h1 style={styles.logo}>SPIRITFLOW WMS</h1>
-          <div style={styles.headerRight}>
-            <span style={styles.userEmail}>{user?.email || 'User'}</span>
-            <button onClick={handleLogout} style={styles.logoutBtn}>
-              LOGOUT
-            </button>
-          </div>
+          <button 
+            onClick={handleLogout} 
+            style={styles.logoutBtn} 
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#333'} 
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1a1a1a'}
+          >
+            LOGOUT
+          </button>
         </div>
       </header>
 
-      <div style={styles.mainContainer}>
-        {/* Sidebar */}
-        <aside
-          style={{
-            ...styles.sidebar,
-            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          }}
-        >
+      <div style={styles.mainContent}>
+        <aside style={{...styles.sidebar, width: menuOpen ? '280px' : '70px'}}>
+          <button onClick={() => setMenuOpen(!menuOpen)} style={styles.menuToggle}>
+            {menuOpen ? '◀◀' : '▶▶'}
+          </button>
+
           <nav style={styles.nav}>
-            {/* Dashboard */}
-            <div style={styles.navSection}>
-              <button
-                onClick={() => router.push('/dashboard')}
-                style={styles.navItem}
+            {/* PROFILE MANAGEMENT SECTION */}
+            <div style={styles.menuSection}>
+              <button 
+                onClick={() => setProfileExpanded(!profileExpanded)} 
+                style={{...styles.sectionHeader, display: 'flex', justifyContent: menuOpen ? 'space-between' : 'center'}}
               >
-                📊 DASHBOARD
+                <span style={{display: menuOpen ? 'inline' : 'none'}}>PROFILE MANAGEMENT</span>
+                <span style={{fontSize: '12px', transition: 'transform 0.3s', transform: profileExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'}}>▼</span>
               </button>
-            </div>
 
-            {/* Profile Management Section */}
-            <div style={styles.navSection}>
-              <button
-                onClick={() => setProfileExpanded(!profileExpanded)}
-                style={styles.navItemExpand}
-              >
-                👤 PROFILE MANAGEMENT {profileExpanded ? '▼' : '▶'}
-              </button>
               {profileExpanded && (
-                <div style={styles.navSubMenu}>
-                  <button
-                    onClick={() => router.push('/dashboard/products')}
-                    style={styles.navSubItem}
+                <div style={styles.menuItems}>
+                  <button 
+                    onClick={() => router.push('#')} 
+                    style={styles.menuItem}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                   >
-                    Products
+                    <span style={styles.menuIcon}>🏦</span>
+                    <span style={{display: menuOpen ? 'inline' : 'none'}}>BANK PROFILE</span>
                   </button>
-                  <button
-                    onClick={() => router.push('/dashboard/employee')}
-                    style={styles.navSubItem}
+                  <button 
+                    onClick={() => router.push('#')} 
+                    style={styles.menuItem}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                   >
-                    Employee Profile
+                    <span style={styles.menuIcon}>👤</span>
+                    <span style={{display: menuOpen ? 'inline' : 'none'}}>EMPLOYEE PROFILE</span>
                   </button>
-                  <button
-                    onClick={() => router.push('/dashboard/bank')}
-                    style={styles.navSubItem}
+                  <button 
+                    onClick={() => router.push('/dashboard/products')} 
+                    style={styles.menuItem}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                   >
-                    Bank Profile
+                    <span style={styles.menuIcon}>📦</span>
+                    <span style={{display: menuOpen ? 'inline' : 'none'}}>PRODUCT PROFILE</span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Stock Management Section */}
-            <div style={styles.navSection}>
-              <button
-                onClick={() => setStockExpanded(!stockExpanded)}
-                style={styles.navItemExpand}
+            {/* STOCK MANAGEMENT SECTION */}
+            <div style={styles.menuSection}>
+              <button 
+                onClick={() => setStockExpanded(!stockExpanded)} 
+                style={{...styles.sectionHeader, display: 'flex', justifyContent: menuOpen ? 'space-between' : 'center'}}
               >
-                📦 STOCK MANAGEMENT {stockExpanded ? '▼' : '▶'}
+                <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK MANAGEMENT</span>
+                <span style={{fontSize: '12px', transition: 'transform 0.3s', transform: stockExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'}}>▼</span>
               </button>
+
               {stockExpanded && (
-                <div style={styles.navSubMenu}>
-                  <button
-                    onClick={() => router.push('/dashboard/stock-transfer')}
-                    style={styles.navSubItem}
+                <div style={styles.menuItems}>
+                  <button 
+                    onClick={() => router.push('/dashboard/stock-transfer')} 
+                    style={styles.menuItem}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                   >
-                    Stock Transfer
+                    <span style={styles.menuIcon}>🔄</span>
+                    <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK TRANSFER</span>
                   </button>
-                  <button
-                    onClick={() => router.push('/dashboard/stock-adjustment')}
-                    style={styles.navSubItem}
+                  <button 
+                    onClick={() => router.push('#')} 
+                    style={styles.menuItem}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                   >
-                    Stock Adjustment
+                    <span style={styles.menuIcon}>📊</span>
+                    <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK VIEW</span>
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Attendance Section */}
-            <div style={styles.navSection}>
-              <button
-                onClick={() => router.push('/dashboard/attendance')}
-                style={styles.navItem}
-              >
-                ✓ ATTENDANCE
-              </button>
-            </div>
-
-            {/* Reports Section */}
-            <div style={styles.navSection}>
-              <button
-                onClick={() => router.push('/dashboard/reports')}
-                style={styles.navItem}
-              >
-                📈 REPORTS
-              </button>
             </div>
           </nav>
         </aside>
 
-        {/* Main Content */}
-        <main style={styles.main}>{children}</main>
+        <main style={styles.mainArea}>
+          {children}
+        </main>
       </div>
 
-      {/* Footer */}
       <footer style={styles.footer}>
-        <p style={styles.footerText}>
-          © 2026 Hotel Diamond Fort - SpiritFlow WMS
-        </p>
+        ● STATUS: LIVE // DESIGNED & DEVELOPED BY EZHUTHOLA EDTECH PRIVATE LIMITED
       </footer>
-
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          style={styles.overlay}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 }
@@ -176,9 +183,9 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
 const styles = {
   container: {
     display: 'flex',
-    flexDirection: 'column' as const,
+    flexDirection: 'column',
     minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
     fontFamily: '"Courier New", Courier, monospace',
   } as React.CSSProperties,
 
@@ -186,173 +193,144 @@ const styles = {
     backgroundColor: '#1a1a1a',
     color: '#ffffff',
     padding: 'clamp(12px, 2vw, 16px)',
-    borderBottom: '2px solid #2196F3',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    borderBottom: '1px solid #e0e0e0',
   } as React.CSSProperties,
 
   headerContent: {
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 'clamp(8px, 2vw, 16px)',
+    alignItems: 'center',
+    maxWidth: '1400px',
+    margin: '0 auto',
+    width: '100%',
   } as React.CSSProperties,
 
-  hamburger: {
-    display: 'none',
-    backgroundColor: 'transparent',
+  logoBtn: {
+    background: 'none',
     border: 'none',
-    color: '#ffffff',
-    fontSize: 'clamp(18px, 3vw, 24px)',
     cursor: 'pointer',
-    padding: '4px 8px',
+    padding: 0,
   } as React.CSSProperties,
 
   logo: {
-    fontSize: 'clamp(16px, 2.5vw, 20px)',
+    fontSize: 'clamp(16px, 2.5vw, 22px)',
+    margin: 0,
+    letterSpacing: '2px',
+    color: '#ffffff',
+  } as React.CSSProperties,
+
+  underscoreBlue: {
+    color: '#2196F3',
+  } as React.CSSProperties,
+
+  logoutBtn: {
+    padding: 'clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px)',
+    fontSize: 'clamp(10px, 1.2vw, 12px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
-    margin: 0,
+    color: '#ffffff',
+    backgroundColor: '#1a1a1a',
+    border: '1px solid #595959',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", Courier, monospace',
+    transition: 'all 0.3s',
+  } as React.CSSProperties,
+
+  mainContent: {
+    display: 'flex',
     flex: 1,
   } as React.CSSProperties,
 
-  headerRight: {
+  sidebar: {
+    backgroundColor: '#f8f8f8',
+    borderRight: '1px solid #e0e0e0',
+    transition: 'width 0.3s',
+    overflowY: 'auto',
+    padding: 'clamp(12px, 1.5vw, 16px) 0',
+  } as React.CSSProperties,
+
+  menuToggle: {
+    width: '100%',
+    padding: 'clamp(8px, 1.5vw, 12px)',
+    fontSize: 'clamp(11px, 1.3vw, 13px)',
+    fontWeight: 'bold',
+    border: 'none',
+    backgroundColor: '#e0e0e0',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", Courier, monospace',
+    marginBottom: 'clamp(12px, 1.5vw, 16px)',
+  } as React.CSSProperties,
+
+  nav: {
+    display: 'flex',
+    flexDirection: 'column',
+  } as React.CSSProperties,
+
+  menuSection: {
+    marginBottom: 'clamp(8px, 1.5vw, 12px)',
+  } as React.CSSProperties,
+
+  sectionHeader: {
+    width: '100%',
+    padding: 'clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px)',
+    fontSize: 'clamp(9px, 1.1vw, 10px)',
+    fontWeight: 'bold',
+    letterSpacing: '1px',
+    color: '#1a1a1a',
+    backgroundColor: '#e0e0e0',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", Courier, monospace',
+    textTransform: 'uppercase',
+    transition: 'background-color 0.2s',
+  } as React.CSSProperties,
+
+  menuItems: {
+    display: 'flex',
+    flexDirection: 'column',
+  } as React.CSSProperties,
+
+  menuItem: {
+    padding: 'clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px)',
+    fontSize: 'clamp(9px, 1.1vw, 11px)',
+    color: '#595959',
+    backgroundColor: '#ffffff',
+    border: 'none',
+    borderBottom: '1px solid #e0e0e0',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", Courier, monospace',
+    textAlign: 'left',
+    transition: 'all 0.2s',
     display: 'flex',
     alignItems: 'center',
     gap: 'clamp(8px, 1.5vw, 12px)',
   } as React.CSSProperties,
 
-  userEmail: {
-    fontSize: 'clamp(11px, 1.2vw, 12px)',
-    color: '#aaa',
+  menuIcon: {
+    fontSize: 'clamp(12px, 1.5vw, 14px)',
+    minWidth: '20px',
   } as React.CSSProperties,
 
-  logoutBtn: {
-    backgroundColor: '#E53935',
-    color: '#ffffff',
-    border: 'none',
-    padding: 'clamp(6px, 1vw, 8px) clamp(12px, 1.5vw, 16px)',
-    fontSize: 'clamp(11px, 1.2vw, 12px)',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    fontFamily: '"Courier New", Courier, monospace',
-    borderRadius: '3px',
-    transition: 'all 0.3s',
-  } as React.CSSProperties,
-
-  mainContainer: {
-    display: 'flex',
+  mainArea: {
     flex: 1,
-    gap: 0,
-  } as React.CSSProperties,
-
-  sidebar: {
-    backgroundColor: '#ffffff',
-    width: 'clamp(200px, 20vw, 280px)',
-    borderRight: '1px solid #e0e0e0',
-    padding: 'clamp(12px, 2vw, 16px)',
     overflowY: 'auto',
-    position: 'relative',
-    zIndex: 50,
-    transition: 'transform 0.3s ease',
-  } as React.CSSProperties,
-
-  nav: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 'clamp(4px, 0.8vw, 8px)',
-  } as React.CSSProperties,
-
-  navSection: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 'clamp(2px, 0.5vw, 4px)',
-  } as React.CSSProperties,
-
-  navItem: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    padding: 'clamp(10px, 1.6vw, 12px)',
-    fontSize: 'clamp(12px, 1.2vw, 13px)',
-    fontWeight: 'bold',
-    letterSpacing: '0.5px',
-    color: '#1a1a1a',
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontFamily: '"Courier New", Courier, monospace',
-    borderRadius: '3px',
-    transition: 'all 0.2s',
-    textTransform: 'uppercase',
-  } as React.CSSProperties,
-
-  navItemExpand: {
-    backgroundColor: '#f0f0f0',
-    border: 'none',
-    padding: 'clamp(10px, 1.6vw, 12px)',
-    fontSize: 'clamp(12px, 1.2vw, 13px)',
-    fontWeight: 'bold',
-    letterSpacing: '0.5px',
-    color: '#1a1a1a',
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontFamily: '"Courier New", Courier, monospace',
-    borderRadius: '3px',
-    transition: 'all 0.2s',
-    textTransform: 'uppercase',
-  } as React.CSSProperties,
-
-  navSubMenu: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 'clamp(2px, 0.5vw, 4px)',
-    paddingLeft: 'clamp(8px, 1.5vw, 12px)',
-    borderLeft: '2px solid #2196F3',
-  } as React.CSSProperties,
-
-  navSubItem: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    padding: 'clamp(8px, 1.4vw, 10px)',
-    fontSize: 'clamp(11px, 1.1vw, 12px)',
-    color: '#595959',
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontFamily: '"Courier New", Courier, monospace',
-    borderRadius: '3px',
-    transition: 'all 0.2s',
-    textTransform: 'uppercase',
-  } as React.CSSProperties,
-
-  main: {
-    flex: 1,
-    padding: 'clamp(12px, 2.5vw, 20px)',
-    overflowY: 'auto',
-    backgroundColor: '#f5f5f5',
   } as React.CSSProperties,
 
   footer: {
-    backgroundColor: '#1a1a1a',
-    color: '#aaa',
+    backgroundColor: '#f8f8f8',
+    color: '#8a8a8a',
+    padding: 'clamp(12px, 2vw, 16px)',
     textAlign: 'center',
-    padding: 'clamp(10px, 1.5vw, 14px)',
+    fontSize: 'clamp(9px, 1.1vw, 10px)',
     borderTop: '1px solid #e0e0e0',
-    fontSize: 'clamp(10px, 1.1vw, 11px)',
   } as React.CSSProperties,
 
-  footerText: {
-    margin: 0,
-    letterSpacing: '0.5px',
-  } as React.CSSProperties,
-
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 48,
+  loadingContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: '16px',
   } as React.CSSProperties,
 };
