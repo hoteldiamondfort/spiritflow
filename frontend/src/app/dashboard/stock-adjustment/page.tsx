@@ -11,8 +11,8 @@ const STOCK_POINTS = [
 ];
 
 const ADJUSTMENT_OPTIONS = [
-  { id: 'CORRECTION', name: 'CORRECTION' },
-  { id: 'CLOSING_STOCK', name: 'CLOSING STOCK' }
+  { id: 'CLOSING_STOCK', name: 'CLOSING STOCK' },
+  { id: 'CORRECTION', name: 'CORRECTION' }
 ];
 
 const PEG_SIZE_ML = 60;
@@ -62,8 +62,8 @@ export default function StockAdjustmentPage() {
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
-  const [selectedStockPoint, setSelectedStockPoint] = useState<StockPointId>('warehouse');
-  const [selectedAdjustmentOption, setSelectedAdjustmentOption] = useState('CORRECTION');
+  const [selectedStockPoint, setSelectedStockPoint] = useState<StockPointId | ''>('');
+  const [selectedAdjustmentOption, setSelectedAdjustmentOption] = useState('');
   const [adjustmentItems, setAdjustmentItems] = useState<AdjustmentItem[]>([]);
   const [reason, setReason] = useState('');
 
@@ -146,8 +146,16 @@ export default function StockAdjustmentPage() {
     return casesML + bottlesML + pegsML;
   };
 
-  const handleStockPointChange = (stockPoint: StockPointId) => {
-    setSelectedStockPoint(stockPoint);
+  const handleStockPointChange = (stockPoint: string) => {
+    if (!stockPoint) {
+      setSelectedStockPoint('');
+      setAdjustmentItems([]);
+      return;
+    }
+
+    const validStockPoint = stockPoint as StockPointId;
+    setSelectedStockPoint(validStockPoint);
+    
     setTimeout(() => {
       if (products.length === 0 || Object.keys(stockData).length === 0) {
         setAdjustmentItems([]);
@@ -163,7 +171,7 @@ export default function StockAdjustmentPage() {
 
       const items: AdjustmentItem[] = sortedProducts.map(product => {
         const stock = stockData[product.product_id];
-        const currentML = stock?.breakdown[stockPoint] || 0;
+        const currentML = stock?.breakdown[validStockPoint] || 0;
         const { cases, bottles, pegs } = convertFromML(product, currentML);
 
         return {
@@ -227,45 +235,6 @@ export default function StockAdjustmentPage() {
       return;
     }
 
-    const dateObj = new Date(selectedDate);
-    const formattedDate = dateObj.toLocaleString('en-IN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-
-    const summary = `
-STOCK ADJUSTMENT CONFIRMATION
-═══════════════════════════════════════
-
-DATE: ${formattedDate}
-STOCK POINT: ${STOCK_POINTS.find(s => s.id === selectedStockPoint)?.name}
-ADJUSTMENT TYPE: ${selectedAdjustmentOption}
-
-CHANGES:
-${adjustmentItems
-  .filter(item => item.adjusted_ml !== item.current_ml)
-  .map((item: AdjustmentItem) => {
-    const { cases: oldCases, bottles: oldBottles, pegs: oldPegs } = convertFromML(
-      products.find(p => p.product_id === item.product_id)!,
-      item.current_ml
-    );
-    return `• ${item.product_alias}
-  From: ${oldCases}c + ${oldBottles}b + ${oldPegs}p
-  To: ${item.adjusted_cases}c + ${item.adjusted_bottles}b + ${item.adjusted_pegs}p`;
-  })
-  .join('\n')}
-
-Reason: ${reason || 'None'}
-
-═══════════════════════════════════════
-Ready to confirm?
-    `;
-
-    if (!confirm(summary)) {
-      return;
-    }
-
     setConfirmationData({
       date: selectedDate,
       stockPoint: selectedStockPoint,
@@ -310,17 +279,17 @@ Ready to confirm?
       }
 
       setShowConfirmation(false);
+      setSelectedDate(getTodayDate());
+      setSelectedStockPoint('');
+      setSelectedAdjustmentOption('');
+      setReason('');
+      setAdjustmentItems([]);
       setSuccessMessage(`✅ Stock adjustment successful! ${confirmationData.items.length} product(s) adjusted.`);
 
       setTimeout(() => {
-        setSelectedDate(getTodayDate());
-        setSelectedStockPoint('warehouse');
-        setSelectedAdjustmentOption('CORRECTION');
-        setReason('');
-        setAdjustmentItems([]);
         setSuccessMessage('');
         fetchProductsAndStock();
-      }, 2000);
+      }, 3000);
 
     } catch (error) {
       setErrorMessage(`❌ Error: ${error instanceof Error ? error.message : 'Adjustment failed'}`);
@@ -461,9 +430,10 @@ Ready to confirm?
                 <label style={styles.label}>STOCK POINT *</label>
                 <select
                   value={selectedStockPoint}
-                  onChange={(e) => handleStockPointChange(e.target.value as StockPointId)}
-                  style={styles.select}
+                  onChange={(e) => handleStockPointChange(e.target.value)}
+                  style={{...styles.select, color: selectedStockPoint ? '#1a1a1a' : '#aaa'}}
                 >
+                  <option value="">-- SELECT STOCK POINT --</option>
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
                   ))}
@@ -475,8 +445,9 @@ Ready to confirm?
                 <select
                   value={selectedAdjustmentOption}
                   onChange={(e) => setSelectedAdjustmentOption(e.target.value)}
-                  style={styles.select}
+                  style={{...styles.select, color: selectedAdjustmentOption ? '#1a1a1a' : '#aaa'}}
                 >
+                  <option value="">-- SELECT ADJUSTMENT TYPE --</option>
                   {ADJUSTMENT_OPTIONS.map(option => (
                     <option key={option.id} value={option.id}>{option.name}</option>
                   ))}
@@ -565,8 +536,8 @@ Ready to confirm?
               <button
                 onClick={() => {
                   setSelectedDate(getTodayDate());
-                  setSelectedStockPoint('warehouse');
-                  setSelectedAdjustmentOption('CORRECTION');
+                  setSelectedStockPoint('');
+                  setSelectedAdjustmentOption('');
                   setReason('');
                   setAdjustmentItems([]);
                   setErrorMessage('');
@@ -670,7 +641,6 @@ const styles = {
     border: '1px solid #e0e0e0',
     backgroundColor: '#ffffff',
     fontFamily: '"Courier New", Courier, monospace',
-    color: '#1a1a1a',
     outline: 'none',
     cursor: 'pointer',
   } as React.CSSProperties,
