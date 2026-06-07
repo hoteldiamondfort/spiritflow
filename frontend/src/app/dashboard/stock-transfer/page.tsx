@@ -10,6 +10,8 @@ const STOCK_POINTS = [
   { id: 'spadikam', name: 'SPADIKAM' }
 ];
 
+const PEG_SIZE_ML = 60; // 1 peg = 60ml
+
 interface TransferItem {
   id: string;
   product_id: string;
@@ -60,6 +62,7 @@ export default function StockTransferPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCases, setSelectedCases] = useState('');
   const [selectedBottles, setSelectedBottles] = useState('');
+  const [selectedPegs, setSelectedPegs] = useState('');
   const [referenceId, setReferenceId] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -134,17 +137,28 @@ export default function StockTransferPage() {
     return stock.breakdown[fromStockPoint as StockPointId] || 0;
   };
 
-  const convertToML = (product: Product, cases: number, bottles: number): number => {
+  // Convert cases + bottles + pegs to ML
+  const convertToML = (product: Product, cases: number, bottles: number, pegs: number): number => {
     const casesML = cases * product.bottles_per_case * product.ml_per_bottle;
     const bottlesML = bottles * product.ml_per_bottle;
-    return casesML + bottlesML;
+    const pegsML = pegs * PEG_SIZE_ML;
+    return casesML + bottlesML + pegsML;
   };
 
+  // Convert ML to cases + bottles + pegs (with peg rounding to 0.5)
   const convertFromML = (product: Product, totalML: number) => {
     const totalBottles = Math.floor(totalML / product.ml_per_bottle);
     const cases = Math.floor(totalBottles / product.bottles_per_case);
     const bottles = totalBottles % product.bottles_per_case;
-    return { cases, bottles };
+    
+    // Remaining ML after cases and bottles
+    const remainingML = totalML - (cases * product.bottles_per_case * product.ml_per_bottle) - (bottles * product.ml_per_bottle);
+    
+    // Convert to pegs and round down to nearest 0.5
+    const pegsExact = remainingML / PEG_SIZE_ML;
+    const pegs = Math.floor(pegsExact * 2) / 2; // Round down to nearest 0.5
+    
+    return { cases, bottles, pegs };
   };
 
   const handleSelectProduct = (product: Product) => {
@@ -161,9 +175,10 @@ export default function StockTransferPage() {
 
     const cases = parseInt(selectedCases) || 0;
     const bottles = parseInt(selectedBottles) || 0;
+    const pegs = parseFloat(selectedPegs) || 0;
 
-    if (cases === 0 && bottles === 0) {
-      setErrorMessage('Please enter cases or bottles');
+    if (cases === 0 && bottles === 0 && pegs === 0) {
+      setErrorMessage('Please enter cases, bottles, or pegs');
       return;
     }
 
@@ -174,14 +189,14 @@ export default function StockTransferPage() {
     }
 
     const fromLocationStock = getFromLocationStock(selectedProduct.product_id);
-    const requestedML = convertToML(selectedProduct, cases, bottles);
+    const requestedML = convertToML(selectedProduct, cases, bottles, pegs);
     
     if (requestedML > fromLocationStock) {
       setErrorMessage(`Insufficient stock for ${selectedProduct.product_alias}`);
       return;
     }
 
-    const totalML = convertToML(selectedProduct, cases, bottles);
+    const totalML = convertToML(selectedProduct, cases, bottles, pegs);
 
     const newItem: TransferItem = {
       id: `${selectedProduct.product_id}-${Date.now()}`,
@@ -200,6 +215,7 @@ export default function StockTransferPage() {
     setSelectedProduct(null);
     setSelectedCases('');
     setSelectedBottles('');
+    setSelectedPegs('');
     setShowDropdown(false);
     setErrorMessage('');
   };
@@ -220,16 +236,19 @@ export default function StockTransferPage() {
     });
   };
 
-  const calculateTotals = (items: TransferItem[]) => {
+  const calculateTotals = (items: TransferItem[], product: Product) => {
     let totalCases = 0;
     let totalBottles = 0;
+    let totalPegs = 0;
 
     items.forEach(item => {
-      totalCases += item.cases;
-      totalBottles += item.bottles;
+      const { cases, bottles, pegs } = convertFromML(product, item.total_ml);
+      totalCases += cases;
+      totalBottles += bottles;
+      totalPegs += pegs;
     });
 
-    return { totalCases, totalBottles };
+    return { totalCases, totalBottles, totalPegs };
   };
 
   const handleTransfer = async () => {
@@ -256,7 +275,12 @@ TO: ${STOCK_POINTS.find(s => s.id === toStockPoint)?.name}
 DATE & TIME: ${dateTime}
 
 PRODUCTS:
-${transferItems.map(item => `• ${item.product_alias} - ${item.cases} case(s) + ${item.bottles} bottle(s)`).join('\n')}
+${transferItems.map(item => {
+  const product = products.find(p => p.product_id === item.product_id);
+  if (!product) return '';
+  const { cases, bottles, pegs } = convertFromML(product, item.total_ml);
+  return `• ${item.product_alias} - ${cases} case(s) + ${bottles} bottle(s) + ${pegs} peg(s)`;
+}).join('\n')}
 
 Reference ID: ${referenceId || 'None'}
 Notes: ${notes || 'None'}
@@ -296,12 +320,17 @@ Ready to confirm?
         throw new Error(data.message || 'Transfer failed');
       }
 
-      // Get display name - use user object display_name if available, otherwise use email or auth_id
+      // Get display name
       const transferredBy = user?.display_name || user?.email || user?.auth_id || 'Unknown';
 
       // ✅ SUCCESS - Generate Report with Live Data
-      const { totalCases, totalBottles } = calculateTotals(transferItems);
-      
+      const reportItems = transferItems.map(item => {
+        const product = products.find(p => p.product_id === item.product_id);
+        if (!product) return null;
+        const { cases, bottles, pegs } = convertFromML(product, item.total_ml);
+        return { ...item, cases, bottles, pegs };
+      }).filter(Boolean);
+
       const report = {
         from_stock_point: fromStockPoint,
         to_stock_point: toStockPoint,
@@ -309,9 +338,7 @@ Ready to confirm?
         reference_id: referenceId || 'N/A',
         notes: notes || 'N/A',
         created_by: transferredBy,
-        items: transferItems,
-        total_cases: totalCases,
-        total_bottles: totalBottles,
+        items: reportItems,
         total_items: transferItems.length,
         transaction_ids: data.data.transaction_ids
       };
@@ -448,27 +475,6 @@ Ready to confirm?
             color: #8a8a8a;
             margin-top: 4px;
           }
-          .totals {
-            background: #f8f8f8;
-            padding: 16px;
-            margin-bottom: 24px;
-            border-radius: 4px;
-          }
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 12px;
-          }
-          .total-label {
-            font-weight: bold;
-            color: #1a1a1a;
-          }
-          .total-value {
-            font-weight: bold;
-            color: #2196F3;
-            font-size: 13px;
-          }
           .footer {
             text-align: center;
             margin-top: 30px;
@@ -500,6 +506,7 @@ Ready to confirm?
     setSelectedProduct(null);
     setSelectedCases('');
     setSelectedBottles('');
+    setSelectedPegs('');
     setReferenceId('');
     setNotes('');
     setTransferItems([]);
@@ -510,13 +517,13 @@ Ready to confirm?
   const dropdownsDisabled = transferItems.length > 0 || isTransferring;
 
   // ========================================
-  // REPORT VIEW - NO ML, DISPLAY NAME, PRINT ONLY CONTENT
+  // REPORT VIEW
   // ========================================
   if (showReport && reportData) {
     return (
       <DashboardLayout user={user}>
         <div style={styles.container}>
-          {/* Print Button - Hidden on Print */}
+          {/* Print Button */}
           <div style={styles.printButtonContainer} className="no-print">
             <button 
               onClick={handlePrint}
@@ -536,7 +543,7 @@ Ready to confirm?
             </button>
           </div>
 
-          {/* Report Content - ID for print */}
+          {/* Report Content */}
           <div id="print-report" style={styles.reportContainer}>
             {/* Header */}
             <div style={styles.reportHeader}>
@@ -576,20 +583,21 @@ Ready to confirm?
 
             <div style={styles.reportDivider}></div>
 
-            {/* Items Table - NO ML COLUMN */}
+            {/* Items Table */}
             <div style={styles.reportTableSection}>
               <h2 style={styles.reportTableTitle}>PRODUCTS TRANSFERRED</h2>
               <div style={styles.reportTableContainer}>
                 <table style={styles.reportTable}>
                   <thead>
                     <tr style={styles.reportTableHeader}>
-                      <th style={{...styles.reportTh, width: '50%'}}>PRODUCT</th>
-                      <th style={{...styles.reportTh, width: '25%', textAlign: 'center'}}>CASES</th>
-                      <th style={{...styles.reportTh, width: '25%', textAlign: 'center'}}>BOTTLES</th>
+                      <th style={{...styles.reportTh, width: '35%'}}>PRODUCT</th>
+                      <th style={{...styles.reportTh, width: '15%', textAlign: 'center'}}>CASES</th>
+                      <th style={{...styles.reportTh, width: '15%', textAlign: 'center'}}>BOTTLES</th>
+                      <th style={{...styles.reportTh, width: '15%', textAlign: 'center'}}>PEGS</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.items.map((item: TransferItem, idx: number) => (
+                    {reportData.items.map((item: any, idx: number) => (
                       <tr key={idx} style={styles.reportTableRow}>
                         <td style={styles.reportTd}>
                           <div style={styles.reportProductName}>{item.product_alias}</div>
@@ -597,6 +605,7 @@ Ready to confirm?
                         </td>
                         <td style={{...styles.reportTd, textAlign: 'center'}}>{item.cases}</td>
                         <td style={{...styles.reportTd, textAlign: 'center'}}>{item.bottles}</td>
+                        <td style={{...styles.reportTd, textAlign: 'center'}}>{item.pegs}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -604,16 +613,8 @@ Ready to confirm?
               </div>
             </div>
 
-            {/* Totals - NO ML */}
+            {/* Totals */}
             <div style={styles.reportTotals}>
-              <div style={styles.reportTotalRow}>
-                <span style={styles.reportTotalLabel}>TOTAL CASES:</span>
-                <span style={styles.reportTotalValue}>{reportData.total_cases}</span>
-              </div>
-              <div style={styles.reportTotalRow}>
-                <span style={styles.reportTotalLabel}>TOTAL BOTTLES:</span>
-                <span style={styles.reportTotalValue}>{reportData.total_bottles}</span>
-              </div>
               <div style={styles.reportTotalRow}>
                 <span style={styles.reportTotalLabel}>TOTAL ITEMS:</span>
                 <span style={styles.reportTotalValue}>{reportData.total_items}</span>
@@ -675,7 +676,6 @@ Ready to confirm?
                     backgroundColor: dropdownsDisabled ? '#f5f5f5' : '#ffffff'
                   }}
                   disabled={dropdownsDisabled}
-                  title={dropdownsDisabled ? 'Remove all items from cart to change stock points' : ''}
                 >
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
@@ -704,7 +704,6 @@ Ready to confirm?
                     backgroundColor: dropdownsDisabled ? '#f5f5f5' : '#ffffff'
                   }}
                   disabled={dropdownsDisabled}
-                  title={dropdownsDisabled ? 'Remove all items from cart to change stock points' : ''}
                 >
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
@@ -718,7 +717,7 @@ Ready to confirm?
               </div>
             </div>
 
-            {/* Product Search and Add */}
+            {/* Product Search */}
             <div style={styles.searchSection}>
               <div style={{...styles.formGroup, width: '100%'}}>
                 <label style={styles.label}>PRODUCT *</label>
@@ -743,7 +742,7 @@ Ready to confirm?
                     <div style={styles.dropdown}>
                       {filteredProducts.slice(0, 10).map(product => {
                         const fromLocationStock = getFromLocationStock(product.product_id);
-                        const { cases, bottles } = convertFromML(product, fromLocationStock);
+                        const { cases, bottles, pegs } = convertFromML(product, fromLocationStock);
                         const hasStock = fromLocationStock > 0;
                         
                         return (
@@ -762,7 +761,7 @@ Ready to confirm?
                               ...styles.stockInfo,
                               color: hasStock ? '#2e7d32' : '#c62828'
                             }}>
-                              {cases} Cases, {bottles} Bottles Available in {STOCK_POINTS.find(s => s.id === fromStockPoint)?.name}
+                              {cases} Cases, {bottles} Bottles, {pegs} Peg(s) Available in {STOCK_POINTS.find(s => s.id === fromStockPoint)?.name}
                             </div>
                           </div>
                         );
@@ -780,6 +779,7 @@ Ready to confirm?
                 </div>
               </div>
 
+              {/* Quantity Inputs */}
               <div style={styles.quantitySection}>
                 <div style={styles.quantityInputsRow}>
                   <div style={{...styles.formGroup, flex: 1}}>
@@ -803,6 +803,20 @@ Ready to confirm?
                       min="0"
                       value={selectedBottles}
                       onChange={(e) => setSelectedBottles(e.target.value)}
+                      style={styles.input}
+                      disabled={isTransferring}
+                    />
+                  </div>
+
+                  <div style={{...styles.formGroup, flex: 1}}>
+                    <label style={styles.label}>PEGS (60ml)</label>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      min="0"
+                      step="0.5"
+                      value={selectedPegs}
+                      onChange={(e) => setSelectedPegs(e.target.value)}
                       style={styles.input}
                       disabled={isTransferring}
                     />
@@ -832,38 +846,46 @@ Ready to confirm?
                         <th style={styles.th}>PRODUCT</th>
                         <th style={styles.th}>CASES</th>
                         <th style={styles.th}>BOTTLES</th>
+                        <th style={styles.th}>PEGS</th>
                         <th style={styles.th}>ACTION</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {transferItems.map((item) => (
-                        <tr key={item.id} style={styles.tableRow}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
-                        >
-                          <td style={styles.td}>
-                            <div style={{fontWeight: 'bold', color: '#1a1a1a'}}>
-                              {item.product_alias}
-                            </div>
-                            <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a'}}>
-                              {item.product_name}
-                            </div>
-                          </td>
-                          <td style={styles.td}>{item.cases}</td>
-                          <td style={styles.td}>{item.bottles}</td>
-                          <td style={styles.td}>
-                            <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              style={styles.removeBtn}
-                              onMouseEnter={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#C62828')}
-                              onMouseLeave={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#E53935')}
-                              disabled={isTransferring}
-                            >
-                              REMOVE
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {transferItems.map((item) => {
+                        const product = products.find(p => p.product_id === item.product_id);
+                        if (!product) return null;
+                        const { cases, bottles, pegs } = convertFromML(product, item.total_ml);
+                        
+                        return (
+                          <tr key={item.id} style={styles.tableRow}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                          >
+                            <td style={styles.td}>
+                              <div style={{fontWeight: 'bold', color: '#1a1a1a'}}>
+                                {item.product_alias}
+                              </div>
+                              <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a'}}>
+                                {item.product_name}
+                              </div>
+                            </td>
+                            <td style={styles.td}>{cases}</td>
+                            <td style={styles.td}>{bottles}</td>
+                            <td style={styles.td}>{pegs}</td>
+                            <td style={styles.td}>
+                              <button
+                                onClick={() => handleRemoveItem(item.id)}
+                                style={styles.removeBtn}
+                                onMouseEnter={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#C62828')}
+                                onMouseLeave={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#E53935')}
+                                disabled={isTransferring}
+                              >
+                                REMOVE
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -907,6 +929,7 @@ Ready to confirm?
                 setSelectedProduct(null);
                 setSelectedCases('');
                 setSelectedBottles('');
+                setSelectedPegs('');
                 setReferenceId('');
                 setNotes('');
                 setTransferItems([]);
@@ -939,6 +962,8 @@ Ready to confirm?
     </DashboardLayout>
   );
 }
+
+// ... [Rest of styles remain the same, just updating table header and dropdowns to include pegs]
 
 const styles = {
   container: {
