@@ -71,6 +71,10 @@ export default function StockTransferPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
 
+  // Report state
+  const [showReport, setShowReport] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
@@ -84,18 +88,15 @@ export default function StockTransferPage() {
     fetchProductsAndStock();
   }, [router]);
 
-  // Fetch products and all stock in ONE call
   const fetchProductsAndStock = async () => {
     try {
       setLoading(true);
       
-      // Fetch products
       const productsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
         headers: { 'Content-Type': 'application/json' }
       });
       const productsData = await productsResponse.json();
       
-      // Fetch all stock
       const stockResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stock/total`, {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -106,7 +107,6 @@ export default function StockTransferPage() {
       }
 
       if (stockDataResponse.status === 'success') {
-        // Create lookup map: { product_id → stock data }
         const stockMap: {[key: string]: StockData} = {};
         stockDataResponse.data.forEach((stock: StockData) => {
           stockMap[stock.product_id] = stock;
@@ -121,7 +121,6 @@ export default function StockTransferPage() {
     }
   };
 
-  // Filter products based on search term
   const filteredProducts = searchTerm.trim() === ''
     ? []
     : products.filter(p =>
@@ -129,21 +128,18 @@ export default function StockTransferPage() {
         p.product_alias.toUpperCase().includes(searchTerm.toUpperCase())
       ).sort((a, b) => a.product_alias.localeCompare(b.product_alias));
 
-  // Get stock for FROM location only - with proper TypeScript typing
   const getFromLocationStock = (productId: string): number => {
     const stock = stockData[productId];
     if (!stock) return 0;
     return stock.breakdown[fromStockPoint as StockPointId] || 0;
   };
 
-  // Helper function to convert cases + bottles to ML
   const convertToML = (product: Product, cases: number, bottles: number): number => {
     const casesML = cases * product.bottles_per_case * product.ml_per_bottle;
     const bottlesML = bottles * product.ml_per_bottle;
     return casesML + bottlesML;
   };
 
-  // Helper function to convert ML to cases + bottles
   const convertFromML = (product: Product, totalML: number) => {
     const totalBottles = Math.floor(totalML / product.ml_per_bottle);
     const cases = Math.floor(totalBottles / product.bottles_per_case);
@@ -171,14 +167,12 @@ export default function StockTransferPage() {
       return;
     }
 
-    // Check if product already in cart
     const exists = transferItems.find(item => item.product_id === selectedProduct.product_id);
     if (exists) {
       setErrorMessage('Product already added. Please remove and add again with new quantity.');
       return;
     }
 
-    // Validate against available stock in FROM location
     const fromLocationStock = getFromLocationStock(selectedProduct.product_id);
     const requestedML = convertToML(selectedProduct, cases, bottles);
     
@@ -214,8 +208,31 @@ export default function StockTransferPage() {
     setTransferItems(transferItems.filter(item => item.id !== id));
   };
 
+  const formatDateTime = () => {
+    const now = new Date();
+    return now.toLocaleString('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const calculateTotals = (items: TransferItem[]) => {
+    let totalCases = 0;
+    let totalBottles = 0;
+
+    items.forEach(item => {
+      totalCases += item.cases;
+      totalBottles += item.bottles;
+    });
+
+    return { totalCases, totalBottles };
+  };
+
   const handleTransfer = async () => {
-    // Validation
     if (fromStockPoint === toStockPoint) {
       setErrorMessage('FROM and TO stock points cannot be the same');
       return;
@@ -226,18 +243,9 @@ export default function StockTransferPage() {
       return;
     }
 
-    // Get current timestamp
     const now = new Date();
-    const dateTime = now.toLocaleString('en-IN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    const dateTime = formatDateTime();
 
-    // Show summary - WITHOUT total quantities
     const summary = `
 STOCK TRANSFER CONFIRMATION
 ═══════════════════════════════════════
@@ -288,29 +296,36 @@ Ready to confirm?
         throw new Error(data.message || 'Transfer failed');
       }
 
-      // ✅ SUCCESS
+      // ✅ SUCCESS - Generate Report with Live Data
+      const { totalCases, totalBottles } = calculateTotals(transferItems);
+      
+      const report = {
+        from_stock_point: fromStockPoint,
+        to_stock_point: toStockPoint,
+        date_time: dateTime,
+        reference_id: referenceId || 'N/A',
+        notes: notes || 'N/A',
+        created_by: user?.auth_id || 'Unknown',
+        items: transferItems,
+        total_cases: totalCases,
+        total_bottles: totalBottles,
+        total_items: transferItems.length,
+        transaction_ids: data.data.transaction_ids
+      };
+
+      setReportData(report);
+      setShowReport(true);
+
       setSuccessMessage(
-        `✅ Transfer successful! ${transferItems.length} product(s) transferred. Transaction IDs: ${data.data.transaction_ids.join(', ')}`
+        `✅ Transfer successful! ${transferItems.length} product(s) transferred.`
       );
 
-      // Reset form after 2 seconds
+      // Hide success message after 3 seconds
       setTimeout(() => {
-        setFromStockPoint('warehouse');
-        setToStockPoint('druvam');
-        setSearchTerm('');
-        setSelectedProduct(null);
-        setSelectedCases('');
-        setSelectedBottles('');
-        setReferenceId('');
-        setNotes('');
-        setTransferItems([]);
         setSuccessMessage('');
-        // Refresh stock data
-        fetchProductsAndStock();
-      }, 2000);
+      }, 3000);
 
     } catch (error) {
-      // ❌ ERROR
       setErrorMessage(`❌ Error: ${error instanceof Error ? error.message : 'Transfer failed'}`);
       console.error('Transfer error:', error);
     } finally {
@@ -318,9 +333,191 @@ Ready to confirm?
     }
   };
 
-  // Lock dropdowns if there are items in cart
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleCloseReport = () => {
+    setShowReport(false);
+    // Reset form
+    setFromStockPoint('warehouse');
+    setToStockPoint('druvam');
+    setSearchTerm('');
+    setSelectedProduct(null);
+    setSelectedCases('');
+    setSelectedBottles('');
+    setReferenceId('');
+    setNotes('');
+    setTransferItems([]);
+    setReportData(null);
+    fetchProductsAndStock();
+  };
+
   const dropdownsDisabled = transferItems.length > 0 || isTransferring;
 
+  // ========================================
+  // REPORT VIEW
+  // ========================================
+  if (showReport && reportData) {
+    return (
+      <DashboardLayout user={user}>
+        <div style={styles.container}>
+          {/* Print Button - Hidden on Print */}
+          <div style={styles.printButtonContainer} className="no-print">
+            <button 
+              onClick={handlePrint}
+              style={styles.printBtn}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
+            >
+              🖨️ PRINT REPORT
+            </button>
+            <button 
+              onClick={handleCloseReport}
+              style={styles.closeBtn}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d0d0d0'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e0e0e0'}
+            >
+              CLOSE & NEW TRANSFER
+            </button>
+          </div>
+
+          {/* Report Content */}
+          <div style={styles.reportContainer}>
+            {/* Header */}
+            <div style={styles.reportHeader}>
+              <h1 style={styles.reportTitle}>STOCK TRANSFER REPORT</h1>
+              <p style={styles.reportSubtitle}>Hotel Diamond Fort - WMS</p>
+            </div>
+
+            {/* Details */}
+            <div style={styles.reportDetails}>
+              <div style={styles.detailRow}>
+                <span style={styles.detailLabel}>FROM:</span>
+                <span style={styles.detailValue}>{STOCK_POINTS.find(s => s.id === reportData.from_stock_point)?.name}</span>
+              </div>
+              <div style={styles.detailRow}>
+                <span style={styles.detailLabel}>TO:</span>
+                <span style={styles.detailValue}>{STOCK_POINTS.find(s => s.id === reportData.to_stock_point)?.name}</span>
+              </div>
+              <div style={styles.detailRow}>
+                <span style={styles.detailLabel}>DATE & TIME:</span>
+                <span style={styles.detailValue}>{reportData.date_time}</span>
+              </div>
+              <div style={styles.detailRow}>
+                <span style={styles.detailLabel}>REFERENCE ID:</span>
+                <span style={styles.detailValue}>{reportData.reference_id}</span>
+              </div>
+              <div style={styles.detailRow}>
+                <span style={styles.detailLabel}>TRANSFERRED BY:</span>
+                <span style={styles.detailValue}>{reportData.created_by}</span>
+              </div>
+              {reportData.notes !== 'N/A' && (
+                <div style={styles.detailRow}>
+                  <span style={styles.detailLabel}>NOTES:</span>
+                  <span style={styles.detailValue}>{reportData.notes}</span>
+                </div>
+              )}
+            </div>
+
+            <div style={styles.reportDivider}></div>
+
+            {/* Items Table */}
+            <div style={styles.reportTableSection}>
+              <h2 style={styles.reportTableTitle}>PRODUCTS TRANSFERRED</h2>
+              <div style={styles.reportTableContainer}>
+                <table style={styles.reportTable}>
+                  <thead>
+                    <tr style={styles.reportTableHeader}>
+                      <th style={{...styles.reportTh, width: '40%'}}>PRODUCT</th>
+                      <th style={{...styles.reportTh, width: '15%', textAlign: 'center'}}>CASES</th>
+                      <th style={{...styles.reportTh, width: '15%', textAlign: 'center'}}>BOTTLES</th>
+                      <th style={{...styles.reportTh, width: '30%', textAlign: 'right'}}>QTY (ML)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.items.map((item: TransferItem, idx: number) => (
+                      <tr key={idx} style={styles.reportTableRow}>
+                        <td style={styles.reportTd}>
+                          <div style={styles.reportProductName}>{item.product_alias}</div>
+                          <div style={styles.reportProductDesc}>{item.product_name}</div>
+                        </td>
+                        <td style={{...styles.reportTd, textAlign: 'center'}}>{item.cases}</td>
+                        <td style={{...styles.reportTd, textAlign: 'center'}}>{item.bottles}</td>
+                        <td style={{...styles.reportTd, textAlign: 'right'}}>{item.total_ml}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Totals */}
+            <div style={styles.reportTotals}>
+              <div style={styles.reportTotalRow}>
+                <span style={styles.reportTotalLabel}>TOTAL CASES:</span>
+                <span style={styles.reportTotalValue}>{reportData.total_cases}</span>
+              </div>
+              <div style={styles.reportTotalRow}>
+                <span style={styles.reportTotalLabel}>TOTAL BOTTLES:</span>
+                <span style={styles.reportTotalValue}>{reportData.total_bottles}</span>
+              </div>
+              <div style={styles.reportTotalRow}>
+                <span style={styles.reportTotalLabel}>TOTAL ITEMS:</span>
+                <span style={styles.reportTotalValue}>{reportData.total_items}</span>
+              </div>
+            </div>
+
+            <div style={styles.reportDivider}></div>
+
+            {/* Footer */}
+            <div style={styles.reportFooter}>
+              <p style={styles.reportFooterText}>
+                Report Generated: {formatDateTime()}
+              </p>
+              <p style={styles.reportFooterText}>
+                Transaction IDs: {reportData.transaction_ids.join(', ')}
+              </p>
+              <p style={styles.reportFooterText}>
+                This is an official Stock Transfer Report. Please retain for records.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Print Styles */}
+        <style>{`
+          @media print {
+            body, html {
+              margin: 0;
+              padding: 0;
+              background: white;
+            }
+            
+            .no-print {
+              display: none !important;
+            }
+            
+            [style*="padding"] {
+              page-break-inside: avoid;
+            }
+            
+            table {
+              page-break-inside: avoid;
+            }
+            
+            tr {
+              page-break-inside: avoid;
+            }
+          }
+        `}</style>
+      </DashboardLayout>
+    );
+  }
+
+  // ========================================
+  // TRANSFER FORM VIEW
+  // ========================================
   return (
     <DashboardLayout user={user}>
       <div style={styles.container}>
@@ -328,14 +525,12 @@ Ready to confirm?
           <h1 style={styles.pageTitle}>STOCK TRANSFER</h1>
         </div>
 
-        {/* Success Message */}
         {successMessage && (
           <div style={styles.successAlert}>
             <span style={styles.alertText}>{successMessage}</span>
           </div>
         )}
 
-        {/* Error Message */}
         {errorMessage && (
           <div style={styles.errorAlert}>
             <span style={styles.alertText}>{errorMessage}</span>
@@ -344,7 +539,7 @@ Ready to confirm?
 
         <div style={styles.contentCard}>
           <div style={styles.formSection}>
-            {/* Stock Points Selection - LOCKED if items in cart */}
+            {/* Stock Points Selection */}
             <div style={styles.locationRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>FROM STOCK POINT *</label>
@@ -946,5 +1141,190 @@ const styles = {
     cursor: 'pointer',
     fontFamily: '"Courier New", Courier, monospace',
     transition: 'all 0.3s',
+  } as React.CSSProperties,
+
+  // ========================================
+  // REPORT STYLES
+  // ========================================
+  printButtonContainer: {
+    marginBottom: 'clamp(12px, 2vw, 16px)',
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+  } as React.CSSProperties,
+
+  printBtn: {
+    padding: 'clamp(10px, 1.5vw, 14px) clamp(18px, 2.5vw, 24px)',
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
+    fontWeight: 'bold',
+    color: '#ffffff',
+    backgroundColor: '#2196F3',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", Courier, monospace',
+    borderRadius: '4px',
+    transition: 'all 0.3s',
+  } as React.CSSProperties,
+
+  closeBtn: {
+    padding: 'clamp(10px, 1.5vw, 14px) clamp(18px, 2.5vw, 24px)',
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    backgroundColor: '#e0e0e0',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", Courier, monospace',
+    borderRadius: '4px',
+    transition: 'all 0.3s',
+  } as React.CSSProperties,
+
+  reportContainer: {
+    backgroundColor: '#ffffff',
+    border: '1px solid #e0e0e0',
+    padding: 'clamp(20px, 3vw, 30px)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+  } as React.CSSProperties,
+
+  reportHeader: {
+    textAlign: 'center',
+    marginBottom: 'clamp(20px, 3vw, 30px)',
+  } as React.CSSProperties,
+
+  reportTitle: {
+    fontSize: 'clamp(20px, 3.5vw, 28px)',
+    fontWeight: 'bold',
+    letterSpacing: '1px',
+    margin: '0 0 8px 0',
+  } as React.CSSProperties,
+
+  reportSubtitle: {
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
+    color: '#8a8a8a',
+    margin: '0',
+  } as React.CSSProperties,
+
+  reportDetails: {
+    marginBottom: 'clamp(16px, 2.5vw, 24px)',
+    backgroundColor: '#f8f8f8',
+    padding: 'clamp(12px, 2vw, 16px)',
+    borderRadius: '4px',
+  } as React.CSSProperties,
+
+  detailRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '12px',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
+  } as React.CSSProperties,
+
+  detailLabel: {
+    fontWeight: 'bold',
+    minWidth: '140px',
+    color: '#1a1a1a',
+  } as React.CSSProperties,
+
+  detailValue: {
+    flex: 1,
+    textAlign: 'right',
+    color: '#595959',
+  } as React.CSSProperties,
+
+  reportDivider: {
+    borderTop: '2px solid #e0e0e0',
+    margin: 'clamp(16px, 2.5vw, 24px) 0',
+  } as React.CSSProperties,
+
+  reportTableSection: {
+    marginBottom: 'clamp(20px, 3vw, 30px)',
+  } as React.CSSProperties,
+
+  reportTableTitle: {
+    fontSize: 'clamp(14px, 1.5vw, 15px)',
+    fontWeight: 'bold',
+    marginBottom: 'clamp(12px, 2vw, 16px)',
+    letterSpacing: '0.8px',
+    textTransform: 'uppercase',
+  } as React.CSSProperties,
+
+  reportTableContainer: {
+    overflowX: 'auto',
+  } as React.CSSProperties,
+
+  reportTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
+  } as React.CSSProperties,
+
+  reportTableHeader: {
+    backgroundColor: '#f0f0f0',
+    borderBottom: '2px solid #e0e0e0',
+  } as React.CSSProperties,
+
+  reportTh: {
+    padding: 'clamp(10px, 1.6vw, 14px)',
+    textAlign: 'left',
+    fontWeight: 'bold',
+    letterSpacing: '0.5px',
+  } as React.CSSProperties,
+
+  reportTableRow: {
+    borderBottom: '1px solid #e0e0e0',
+  } as React.CSSProperties,
+
+  reportTd: {
+    padding: 'clamp(10px, 1.6vw, 14px)',
+    color: '#595959',
+  } as React.CSSProperties,
+
+  reportProductName: {
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
+  } as React.CSSProperties,
+
+  reportProductDesc: {
+    fontSize: 'clamp(10px, 1.1vw, 11px)',
+    color: '#8a8a8a',
+    marginTop: '4px',
+  } as React.CSSProperties,
+
+  reportTotals: {
+    backgroundColor: '#f8f8f8',
+    padding: 'clamp(12px, 2vw, 16px)',
+    borderRadius: '4px',
+    marginBottom: 'clamp(16px, 2.5vw, 24px)',
+  } as React.CSSProperties,
+
+  reportTotalRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '12px',
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
+  } as React.CSSProperties,
+
+  reportTotalLabel: {
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  } as React.CSSProperties,
+
+  reportTotalValue: {
+    fontWeight: 'bold',
+    color: '#2196F3',
+    fontSize: 'clamp(13px, 1.4vw, 14px)',
+  } as React.CSSProperties,
+
+  reportFooter: {
+    textAlign: 'center',
+    marginTop: 'clamp(20px, 3vw, 30px)',
+    paddingTop: 'clamp(12px, 2vw, 16px)',
+    borderTop: '1px solid #e0e0e0',
+  } as React.CSSProperties,
+
+  reportFooterText: {
+    fontSize: 'clamp(10px, 1.1vw, 11px)',
+    color: '#8a8a8a',
+    margin: '6px 0',
   } as React.CSSProperties,
 };
