@@ -43,6 +43,8 @@ interface StockData {
   };
 }
 
+type StockPointId = 'warehouse' | 'druvam' | 'spadikam';
+
 export default function StockTransferPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stockData, setStockData] = useState<{[key: string]: StockData}>({});
@@ -51,8 +53,8 @@ export default function StockTransferPage() {
   const router = useRouter();
 
   // Form state
-  const [fromStockPoint, setFromStockPoint] = useState('warehouse');
-  const [toStockPoint, setToStockPoint] = useState('druvam');
+  const [fromStockPoint, setFromStockPoint] = useState<StockPointId>('warehouse');
+  const [toStockPoint, setToStockPoint] = useState<StockPointId>('druvam');
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -121,6 +123,13 @@ export default function StockTransferPage() {
         p.product_alias.toUpperCase().includes(searchTerm.toUpperCase())
       ).sort((a, b) => a.product_alias.localeCompare(b.product_alias));
 
+  // Get stock for FROM location only - with proper TypeScript typing
+  const getFromLocationStock = (productId: string): number => {
+    const stock = stockData[productId];
+    if (!stock) return 0;
+    return stock.breakdown[fromStockPoint as StockPointId] || 0;
+  };
+
   // Helper function to convert cases + bottles to ML
   const convertToML = (product: Product, cases: number, bottles: number): number => {
     const casesML = cases * product.bottles_per_case * product.ml_per_bottle;
@@ -163,11 +172,11 @@ export default function StockTransferPage() {
       return;
     }
 
-    // Validate against available stock
-    const stock = stockData[selectedProduct.product_id];
+    // Validate against available stock in FROM location
+    const fromLocationStock = getFromLocationStock(selectedProduct.product_id);
     const requestedML = convertToML(selectedProduct, cases, bottles);
     
-    if (requestedML > stock.total_quantity_ml) {
+    if (requestedML > fromLocationStock) {
       alert('Insufficient stock');
       return;
     }
@@ -258,7 +267,7 @@ Ready to confirm?
                 <label style={styles.label}>FROM STOCK POINT *</label>
                 <select 
                   value={fromStockPoint} 
-                  onChange={(e) => setFromStockPoint(e.target.value)}
+                  onChange={(e) => setFromStockPoint(e.target.value as StockPointId)}
                   style={styles.select}
                 >
                   {STOCK_POINTS.map(point => (
@@ -275,7 +284,7 @@ Ready to confirm?
                 <label style={styles.label}>TO STOCK POINT *</label>
                 <select 
                   value={toStockPoint} 
-                  onChange={(e) => setToStockPoint(e.target.value)}
+                  onChange={(e) => setToStockPoint(e.target.value as StockPointId)}
                   style={styles.select}
                 >
                   {STOCK_POINTS.map(point => (
@@ -308,9 +317,9 @@ Ready to confirm?
                   {showDropdown && searchTerm && filteredProducts.length > 0 && (
                     <div style={styles.dropdown}>
                       {filteredProducts.slice(0, 10).map(product => {
-                        const stock = stockData[product.product_id];
-                        const { cases, bottles } = convertFromML(product, stock?.total_quantity_ml || 0);
-                        const hasStock = stock?.total_quantity_ml > 0;
+                        const fromLocationStock = getFromLocationStock(product.product_id);
+                        const { cases, bottles } = convertFromML(product, fromLocationStock);
+                        const hasStock = fromLocationStock > 0;
                         
                         return (
                           <div 
@@ -324,17 +333,12 @@ Ready to confirm?
                             <div style={styles.productAlias}>
                               {product.product_name}
                             </div>
-                            {stock && (
-                              <div style={{
-                                ...styles.stockInfo,
-                                color: hasStock ? '#2e7d32' : '#c62828'
-                              }}>
-                                {cases} Cases, {bottles} Bottles Available in {Object.entries(stock.breakdown)
-                                  .filter(([_, qty]) => qty > 0)
-                                  .map(([point]) => point.charAt(0).toUpperCase() + point.slice(1))
-                                  .join(', ') || 'No Stock'}
-                              </div>
-                            )}
+                            <div style={{
+                              ...styles.stockInfo,
+                              color: hasStock ? '#2e7d32' : '#c62828'
+                            }}>
+                              {cases} Cases, {bottles} Bottles Available in {STOCK_POINTS.find(s => s.id === fromStockPoint)?.name}
+                            </div>
                           </div>
                         );
                       })}
