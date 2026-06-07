@@ -146,6 +146,9 @@ export default function StockAdjustmentPage() {
     return casesML + bottlesML + pegsML;
   };
 
+  const isWarehouse = selectedStockPoint === 'warehouse';
+  const isOutlet = selectedStockPoint === 'druvam' || selectedStockPoint === 'spadikam';
+
   const handleStockPointChange = (stockPoint: string) => {
     if (!stockPoint) {
       setSelectedStockPoint('');
@@ -209,7 +212,16 @@ export default function StockAdjustmentPage() {
       item.adjusted_pegs = numValue;
     }
 
-    item.adjusted_ml = convertToML(product, item.adjusted_cases, item.adjusted_bottles, item.adjusted_pegs);
+    // For warehouse: cases + bottles + 0 pegs
+    // For outlets: 0 cases + bottles + pegs
+    if (isWarehouse) {
+      item.adjusted_pegs = 0;
+      item.adjusted_ml = convertToML(product, item.adjusted_cases, item.adjusted_bottles, 0);
+    } else {
+      item.adjusted_cases = 0;
+      item.adjusted_ml = convertToML(product, 0, item.adjusted_bottles, item.adjusted_pegs);
+    }
+
     setAdjustmentItems(updatedItems);
   };
 
@@ -299,6 +311,14 @@ export default function StockAdjustmentPage() {
     }
   };
 
+  const getDisplayFormat = (item: AdjustmentItem, stockPoint: StockPointId | ''): string => {
+    if (stockPoint === 'warehouse') {
+      return `${item.adjusted_cases} Case(s) + ${item.adjusted_bottles} Bottle(s)`;
+    } else {
+      return `${item.adjusted_bottles} Bottle(s) + ${item.adjusted_pegs} Peg(s)`;
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout user={user}>
@@ -359,34 +379,24 @@ export default function StockAdjustmentPage() {
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.tableHeader}>
-                      <th style={{...styles.th, width: '30%'}}>PRODUCT</th>
-                      <th style={{...styles.th, width: '35%'}}>CURRENT</th>
-                      <th style={{...styles.th, width: '35%'}}>ADJUSTED</th>
+                      <th style={{...styles.th, width: '40%'}}>PRODUCT</th>
+                      <th style={{...styles.th, width: '60%'}}>ADJUSTED TO</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {confirmationData.items.map((item: AdjustmentItem, idx: number) => {
-                      const { cases: oldCases, bottles: oldBottles, pegs: oldPegs } = convertFromML(
-                        products.find(p => p.product_id === item.product_id)!,
-                        item.current_ml
-                      );
-                      return (
-                        <tr key={idx} style={styles.tableRow}>
-                          <td style={styles.td}>
-                            <div style={{fontWeight: 'bold'}}>{item.product_alias}</div>
-                            <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a'}}>
-                              {item.product_name}
-                            </div>
-                          </td>
-                          <td style={styles.td}>
-                            {oldCases}c + {oldBottles}b + {oldPegs}p
-                          </td>
-                          <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
-                            {item.adjusted_cases}c + {item.adjusted_bottles}b + {item.adjusted_pegs}p
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {confirmationData.items.map((item: AdjustmentItem, idx: number) => (
+                      <tr key={idx} style={styles.tableRow}>
+                        <td style={styles.td}>
+                          <div style={{fontWeight: 'bold'}}>{item.product_alias}</div>
+                          <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a'}}>
+                            {item.product_name}
+                          </div>
+                        </td>
+                        <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
+                          {getDisplayFormat(item, confirmationData.stockPoint)}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -472,11 +482,18 @@ export default function StockAdjustmentPage() {
                   <table style={styles.table}>
                     <thead>
                       <tr style={styles.tableHeader}>
-                        <th style={{...styles.th, width: '25%'}}>PRODUCT</th>
-                        <th style={{...styles.th, width: '15%'}}>CURRENT</th>
-                        <th style={{...styles.th, width: '15%', textAlign: 'center'}}>CASES</th>
-                        <th style={{...styles.th, width: '15%', textAlign: 'center'}}>BOTTLES</th>
-                        <th style={{...styles.th, width: '15%', textAlign: 'center'}}>PEGS</th>
+                        <th style={{...styles.th, width: '30%'}}>PRODUCT</th>
+                        {isWarehouse ? (
+                          <>
+                            <th style={{...styles.th, width: '20%', textAlign: 'center'}}>CASES</th>
+                            <th style={{...styles.th, width: '20%', textAlign: 'center'}}>BOTTLES</th>
+                          </>
+                        ) : (
+                          <>
+                            <th style={{...styles.th, width: '20%', textAlign: 'center'}}>BOTTLES</th>
+                            <th style={{...styles.th, width: '20%', textAlign: 'center'}}>PEGS</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -493,37 +510,50 @@ export default function StockAdjustmentPage() {
                               {item.category_name}
                             </div>
                           </td>
-                          <td style={{...styles.td, fontSize: 'clamp(10px, 1.1vw, 11px)', fontWeight: 'bold'}}>
-                            {item.current_ml}ml
-                          </td>
-                          <td style={{...styles.td, padding: '8px 4px'}}>
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.adjusted_cases}
-                              onChange={(e) => handleItemChange(idx, 'cases', e.target.value)}
-                              style={styles.tableInput}
-                            />
-                          </td>
-                          <td style={{...styles.td, padding: '8px 4px'}}>
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.adjusted_bottles}
-                              onChange={(e) => handleItemChange(idx, 'bottles', e.target.value)}
-                              style={styles.tableInput}
-                            />
-                          </td>
-                          <td style={{...styles.td, padding: '8px 4px'}}>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.5"
-                              value={item.adjusted_pegs}
-                              onChange={(e) => handleItemChange(idx, 'pegs', e.target.value)}
-                              style={styles.tableInput}
-                            />
-                          </td>
+                          {isWarehouse ? (
+                            <>
+                              <td style={{...styles.td, padding: '8px 4px'}}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.adjusted_cases}
+                                  onChange={(e) => handleItemChange(idx, 'cases', e.target.value)}
+                                  style={styles.tableInput}
+                                />
+                              </td>
+                              <td style={{...styles.td, padding: '8px 4px'}}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.adjusted_bottles}
+                                  onChange={(e) => handleItemChange(idx, 'bottles', e.target.value)}
+                                  style={styles.tableInput}
+                                />
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td style={{...styles.td, padding: '8px 4px'}}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={item.adjusted_bottles}
+                                  onChange={(e) => handleItemChange(idx, 'bottles', e.target.value)}
+                                  style={styles.tableInput}
+                                />
+                              </td>
+                              <td style={{...styles.td, padding: '8px 4px'}}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  value={item.adjusted_pegs}
+                                  onChange={(e) => handleItemChange(idx, 'pegs', e.target.value)}
+                                  style={styles.tableInput}
+                                />
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>
