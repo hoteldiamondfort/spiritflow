@@ -226,20 +226,34 @@ export default function StockTransferPage() {
       return;
     }
 
-    // Show summary
-    const totalQuantity = transferItems.reduce((sum, item) => sum + item.total_ml, 0);
+    // Get current timestamp
+    const now = new Date();
+    const dateTime = now.toLocaleString('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    // Show summary - WITHOUT total quantities
     const summary = `
-Transfer Summary:
+STOCK TRANSFER CONFIRMATION
+═══════════════════════════════════════
+
 FROM: ${STOCK_POINTS.find(s => s.id === fromStockPoint)?.name}
 TO: ${STOCK_POINTS.find(s => s.id === toStockPoint)?.name}
 
-Products:
-${transferItems.map(item => `- ${item.product_alias}: ${item.cases} case(s) + ${item.bottles} bottle(s) (${item.total_ml} ML)`).join('\n')}
+DATE & TIME: ${dateTime}
 
-Total Quantity: ${totalQuantity} ML
-Reference ID: ${referenceId || 'Not provided'}
+PRODUCTS:
+${transferItems.map(item => `• ${item.product_alias} - ${item.cases} case(s) + ${item.bottles} bottle(s)`).join('\n')}
+
+Reference ID: ${referenceId || 'None'}
 Notes: ${notes || 'None'}
 
+═══════════════════════════════════════
 Ready to confirm?
     `;
 
@@ -304,6 +318,9 @@ Ready to confirm?
     }
   };
 
+  // Lock dropdowns if there are items in cart
+  const dropdownsDisabled = transferItems.length > 0 || isTransferring;
+
   return (
     <DashboardLayout user={user}>
       <div style={styles.container}>
@@ -327,20 +344,31 @@ Ready to confirm?
 
         <div style={styles.contentCard}>
           <div style={styles.formSection}>
-            {/* Stock Points Selection */}
+            {/* Stock Points Selection - LOCKED if items in cart */}
             <div style={styles.locationRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>FROM STOCK POINT *</label>
                 <select 
                   value={fromStockPoint} 
                   onChange={(e) => setFromStockPoint(e.target.value as StockPointId)}
-                  style={styles.select}
-                  disabled={isTransferring}
+                  style={{
+                    ...styles.select,
+                    opacity: dropdownsDisabled ? 0.5 : 1,
+                    cursor: dropdownsDisabled ? 'not-allowed' : 'pointer',
+                    backgroundColor: dropdownsDisabled ? '#f5f5f5' : '#ffffff'
+                  }}
+                  disabled={dropdownsDisabled}
+                  title={dropdownsDisabled ? 'Remove all items from cart to change stock points' : ''}
                 >
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
                   ))}
                 </select>
+                {dropdownsDisabled && (
+                  <div style={styles.lockedWarning}>
+                    🔒 Locked - Remove items to change
+                  </div>
+                )}
               </div>
 
               <div style={styles.arrowContainer}>
@@ -352,13 +380,24 @@ Ready to confirm?
                 <select 
                   value={toStockPoint} 
                   onChange={(e) => setToStockPoint(e.target.value as StockPointId)}
-                  style={styles.select}
-                  disabled={isTransferring}
+                  style={{
+                    ...styles.select,
+                    opacity: dropdownsDisabled ? 0.5 : 1,
+                    cursor: dropdownsDisabled ? 'not-allowed' : 'pointer',
+                    backgroundColor: dropdownsDisabled ? '#f5f5f5' : '#ffffff'
+                  }}
+                  disabled={dropdownsDisabled}
+                  title={dropdownsDisabled ? 'Remove all items from cart to change stock points' : ''}
                 >
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
                   ))}
                 </select>
+                {dropdownsDisabled && (
+                  <div style={styles.lockedWarning}>
+                    🔒 Locked - Remove items to change
+                  </div>
+                )}
               </div>
             </div>
 
@@ -644,7 +683,7 @@ const styles = {
   locationRow: {
     display: 'flex',
     gap: 'clamp(8px, 1.5vw, 12px)',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     marginBottom: 'clamp(16px, 2.5vw, 24px)',
     flexWrap: 'wrap',
   } as React.CSSProperties,
@@ -655,6 +694,7 @@ const styles = {
     gap: 'clamp(4px, 0.8vw, 6px)',
     flex: 1,
     minWidth: 'clamp(140px, 30%, 200px)',
+    position: 'relative',
   } as React.CSSProperties,
 
   label: {
@@ -674,12 +714,22 @@ const styles = {
     color: '#1a1a1a',
     outline: 'none',
     cursor: 'pointer',
+    transition: 'all 0.3s',
+  } as React.CSSProperties,
+
+  lockedWarning: {
+    fontSize: 'clamp(9px, 1vw, 10px)',
+    color: '#ff6f00',
+    marginTop: '4px',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
   } as React.CSSProperties,
 
   arrowContainer: {
     display: 'flex',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     marginBottom: 'clamp(4px, 0.8vw, 6px)',
+    height: '42px',
   } as React.CSSProperties,
 
   arrow: {
