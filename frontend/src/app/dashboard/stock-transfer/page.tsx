@@ -66,6 +66,11 @@ export default function StockTransferPage() {
   // Transfer items (cart)
   const [transferItems, setTransferItems] = useState<TransferItem[]>([]);
 
+  // Message states
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
@@ -110,6 +115,7 @@ export default function StockTransferPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
+      setErrorMessage('Failed to load products and stock');
     } finally {
       setLoading(false);
     }
@@ -153,7 +159,7 @@ export default function StockTransferPage() {
 
   const handleAddProduct = () => {
     if (!selectedProduct) {
-      alert('Please select a product first');
+      setErrorMessage('Please select a product first');
       return;
     }
 
@@ -161,14 +167,14 @@ export default function StockTransferPage() {
     const bottles = parseInt(selectedBottles) || 0;
 
     if (cases === 0 && bottles === 0) {
-      alert('Please enter cases or bottles');
+      setErrorMessage('Please enter cases or bottles');
       return;
     }
 
     // Check if product already in cart
     const exists = transferItems.find(item => item.product_id === selectedProduct.product_id);
     if (exists) {
-      alert('Product already added. Please remove and add again with new quantity.');
+      setErrorMessage('Product already added. Please remove and add again with new quantity.');
       return;
     }
 
@@ -177,7 +183,7 @@ export default function StockTransferPage() {
     const requestedML = convertToML(selectedProduct, cases, bottles);
     
     if (requestedML > fromLocationStock) {
-      alert('Insufficient stock');
+      setErrorMessage(`Insufficient stock for ${selectedProduct.product_alias}. Available: ${fromLocationStock} ML, Requested: ${requestedML} ML`);
       return;
     }
 
@@ -201,6 +207,7 @@ export default function StockTransferPage() {
     setSelectedCases('');
     setSelectedBottles('');
     setShowDropdown(false);
+    setErrorMessage('');
   };
 
   const handleRemoveItem = (id: string) => {
@@ -210,12 +217,12 @@ export default function StockTransferPage() {
   const handleTransfer = async () => {
     // Validation
     if (fromStockPoint === toStockPoint) {
-      alert('FROM and TO stock points cannot be the same');
+      setErrorMessage('FROM and TO stock points cannot be the same');
       return;
     }
 
     if (transferItems.length === 0) {
-      alert('Please add at least one product to transfer');
+      setErrorMessage('Please add at least one product to transfer');
       return;
     }
 
@@ -236,19 +243,64 @@ Notes: ${notes || 'None'}
 Ready to confirm?
     `;
 
-    if (confirm(summary)) {
-      // TODO: Call API when ready
-      alert('Stock Transfer API will be called here!');
-      console.log('Transfer data:', {
-        from_stock_point_id: fromStockPoint,
-        to_stock_point_id: toStockPoint,
-        reference_id: referenceId || null,
-        notes: notes || null,
-        items: transferItems.map(item => ({
-          product_id: item.product_id,
-          quantity_ml: item.total_ml
-        }))
+    if (!confirm(summary)) {
+      return;
+    }
+
+    try {
+      setIsTransferring(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stock-transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: transferItems.map(item => ({
+            product_id: item.product_id,
+            quantity_ml: item.total_ml
+          })),
+          from_stock_point_id: fromStockPoint,
+          to_stock_point_id: toStockPoint,
+          reference_id: referenceId || null,
+          notes: notes || null,
+          created_by: user?.auth_id
+        })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Transfer failed');
+      }
+
+      // ✅ SUCCESS
+      setSuccessMessage(
+        `✅ Transfer successful! ${transferItems.length} product(s) transferred. Transaction IDs: ${data.data.transaction_ids.join(', ')}`
+      );
+
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setFromStockPoint('warehouse');
+        setToStockPoint('druvam');
+        setSearchTerm('');
+        setSelectedProduct(null);
+        setSelectedCases('');
+        setSelectedBottles('');
+        setReferenceId('');
+        setNotes('');
+        setTransferItems([]);
+        setSuccessMessage('');
+        // Refresh stock data
+        fetchProductsAndStock();
+      }, 2000);
+
+    } catch (error) {
+      // ❌ ERROR
+      setErrorMessage(`❌ Error: ${error instanceof Error ? error.message : 'Transfer failed'}`);
+      console.error('Transfer error:', error);
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -258,6 +310,20 @@ Ready to confirm?
         <div style={styles.pageHeader}>
           <h1 style={styles.pageTitle}>STOCK TRANSFER</h1>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div style={styles.successAlert}>
+            <span style={styles.alertText}>{successMessage}</span>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div style={styles.errorAlert}>
+            <span style={styles.alertText}>{errorMessage}</span>
+          </div>
+        )}
 
         <div style={styles.contentCard}>
           <div style={styles.formSection}>
@@ -269,6 +335,7 @@ Ready to confirm?
                   value={fromStockPoint} 
                   onChange={(e) => setFromStockPoint(e.target.value as StockPointId)}
                   style={styles.select}
+                  disabled={isTransferring}
                 >
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
@@ -286,6 +353,7 @@ Ready to confirm?
                   value={toStockPoint} 
                   onChange={(e) => setToStockPoint(e.target.value as StockPointId)}
                   style={styles.select}
+                  disabled={isTransferring}
                 >
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
@@ -312,6 +380,7 @@ Ready to confirm?
                       if (searchTerm) setShowDropdown(true);
                     }}
                     style={styles.searchInput}
+                    disabled={isTransferring}
                   />
                   
                   {showDropdown && searchTerm && filteredProducts.length > 0 && (
@@ -366,6 +435,7 @@ Ready to confirm?
                       value={selectedCases}
                       onChange={(e) => setSelectedCases(e.target.value)}
                       style={styles.input}
+                      disabled={isTransferring}
                     />
                   </div>
 
@@ -378,14 +448,16 @@ Ready to confirm?
                       value={selectedBottles}
                       onChange={(e) => setSelectedBottles(e.target.value)}
                       style={styles.input}
+                      disabled={isTransferring}
                     />
                   </div>
 
                   <button
                     onClick={handleAddProduct}
                     style={styles.addBtn}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
+                    onMouseEnter={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#1976D2')}
+                    onMouseLeave={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#2196F3')}
+                    disabled={isTransferring}
                   >
                     + ADD
                   </button>
@@ -396,7 +468,7 @@ Ready to confirm?
             {/* Transfer Items Table */}
             {transferItems.length > 0 && (
               <div style={styles.tableSection}>
-                <div style={styles.tableHeader}>PRODUCTS TO TRANSFER</div>
+                <div style={styles.tableHeader}>PRODUCTS TO TRANSFER ({transferItems.length})</div>
                 <div style={styles.tableContainer}>
                   <table style={styles.table}>
                     <thead>
@@ -427,8 +499,9 @@ Ready to confirm?
                             <button
                               onClick={() => handleRemoveItem(item.id)}
                               style={styles.removeBtn}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#C62828'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#E53935'}
+                              onMouseEnter={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#C62828')}
+                              onMouseLeave={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#E53935')}
+                              disabled={isTransferring}
                             >
                               REMOVE
                             </button>
@@ -451,6 +524,7 @@ Ready to confirm?
                   value={referenceId}
                   onChange={(e) => setReferenceId(e.target.value.toUpperCase())}
                   style={styles.input}
+                  disabled={isTransferring}
                 />
               </div>
 
@@ -461,6 +535,7 @@ Ready to confirm?
                   value={notes}
                   onChange={(e) => setNotes(e.target.value.toUpperCase())}
                   style={{...styles.input, minHeight: '60px'}}
+                  disabled={isTransferring}
                 />
               </div>
             </div>
@@ -479,21 +554,28 @@ Ready to confirm?
                 setReferenceId('');
                 setNotes('');
                 setTransferItems([]);
+                setErrorMessage('');
+                setSuccessMessage('');
               }}
               style={styles.cancelBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d0d0d0'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e0e0e0'}
+              onMouseEnter={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#d0d0d0')}
+              onMouseLeave={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#e0e0e0')}
+              disabled={isTransferring}
             >
               CANCEL
             </button>
             <button
               onClick={handleTransfer}
-              disabled={transferItems.length === 0}
-              style={{...styles.transferBtn, opacity: transferItems.length === 0 ? 0.5 : 1}}
-              onMouseEnter={(e) => transferItems.length > 0 && (e.currentTarget.style.backgroundColor = '#1976D2')}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
+              disabled={transferItems.length === 0 || isTransferring}
+              style={{
+                ...styles.transferBtn,
+                opacity: (transferItems.length === 0 || isTransferring) ? 0.5 : 1,
+                cursor: (transferItems.length === 0 || isTransferring) ? 'not-allowed' : 'pointer'
+              }}
+              onMouseEnter={(e) => (transferItems.length > 0 && !isTransferring) && (e.currentTarget.style.backgroundColor = '#1976D2')}
+              onMouseLeave={(e) => !isTransferring && (e.currentTarget.style.backgroundColor = '#2196F3')}
             >
-              CONFIRM TRANSFER
+              {isTransferring ? 'PROCESSING...' : 'CONFIRM TRANSFER'}
             </button>
           </div>
         </div>
@@ -519,6 +601,33 @@ const styles = {
     fontWeight: 'bold',
     letterSpacing: '1px',
     margin: 0,
+  } as React.CSSProperties,
+
+  successAlert: {
+    backgroundColor: '#c8e6c9',
+    color: '#2e7d32',
+    border: '1px solid #81c784',
+    borderRadius: '4px',
+    padding: 'clamp(12px, 2vw, 16px)',
+    marginBottom: 'clamp(12px, 2vw, 16px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
+    fontWeight: 'bold',
+  } as React.CSSProperties,
+
+  errorAlert: {
+    backgroundColor: '#ffcdd2',
+    color: '#c62828',
+    border: '1px solid #ef5350',
+    borderRadius: '4px',
+    padding: 'clamp(12px, 2vw, 16px)',
+    marginBottom: 'clamp(12px, 2vw, 16px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
+    fontWeight: 'bold',
+  } as React.CSSProperties,
+
+  alertText: {
+    display: 'block',
+    wordBreak: 'break-word',
   } as React.CSSProperties,
 
   contentCard: {
