@@ -88,7 +88,7 @@ export default function StockTransferPage() {
     : products.filter(p =>
         p.product_name.toUpperCase().includes(searchTerm.toUpperCase()) ||
         p.product_alias.toUpperCase().includes(searchTerm.toUpperCase())
-      ).sort((a, b) => a.product_name.localeCompare(b.product_name));
+      ).sort((a, b) => a.product_alias.localeCompare(b.product_alias));
 
   // Helper function to convert cases + bottles to ML
   const convertToML = (product: Product, cases: number, bottles: number): number => {
@@ -99,7 +99,7 @@ export default function StockTransferPage() {
 
   const handleSelectProduct = (product: Product) => {
     setSelectedProduct(product);
-    setSearchTerm(product.product_name);
+    setSearchTerm(product.product_alias);
     setShowDropdown(false);
   };
 
@@ -195,8 +195,6 @@ Ready to confirm?
     }
   };
 
-  const totalQuantity = transferItems.reduce((sum, item) => sum + item.total_ml, 0);
-
   return (
     <DashboardLayout user={user}>
       <div style={styles.container}>
@@ -269,9 +267,9 @@ Ready to confirm?
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                         >
-                          <div style={styles.productName}>{product.product_name}</div>
+                          <div style={styles.productName}>{product.product_alias}</div>
                           <div style={styles.productAlias}>
-                            {product.product_alias} | {product.ml_per_bottle}ML × {product.bottles_per_case}
+                            {product.product_name} | {product.ml_per_bottle}ML × {product.bottles_per_case}
                           </div>
                         </div>
                       ))}
@@ -280,8 +278,8 @@ Ready to confirm?
 
                   {selectedProduct && (
                     <div style={styles.selectedProductInfo}>
-                      <span style={{fontSize: 'clamp(9px, 1vw, 10px)'}}>
-                        ✓ {selectedProduct.product_name} selected
+                      <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                        ✓ {selectedProduct.product_alias} selected
                       </span>
                     </div>
                   )}
@@ -337,7 +335,6 @@ Ready to confirm?
                         <th style={styles.th}>PRODUCT</th>
                         <th style={styles.th}>CASES</th>
                         <th style={styles.th}>BOTTLES</th>
-                        <th style={styles.th}>TOTAL (ML)</th>
                         <th style={styles.th}>ACTION</th>
                       </tr>
                     </thead>
@@ -348,11 +345,15 @@ Ready to confirm?
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                         >
                           <td style={styles.td}>
-                            <div style={styles.productCol}>{item.product_alias}</div>
+                            <div style={{fontWeight: 'bold', color: '#1a1a1a'}}>
+                              {item.product_alias}
+                            </div>
+                            <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a'}}>
+                              {item.product_name}
+                            </div>
                           </td>
                           <td style={styles.td}>{item.cases}</td>
                           <td style={styles.td}>{item.bottles}</td>
-                          <td style={styles.td}>{item.total_ml}</td>
                           <td style={styles.td}>
                             <button
                               onClick={() => handleRemoveItem(item.id)}
@@ -367,9 +368,6 @@ Ready to confirm?
                       ))}
                     </tbody>
                   </table>
-                </div>
-                <div style={styles.totalRow}>
-                  TOTAL QUANTITY: {totalQuantity} ML
                 </div>
               </div>
             )}
@@ -448,7 +446,7 @@ const styles = {
   } as React.CSSProperties,
 
   pageTitle: {
-    fontSize: 'clamp(16px, 3vw, 26px)',
+    fontSize: 'clamp(18px, 3.5vw, 28px)',
     fontWeight: 'bold',
     letterSpacing: '1px',
     margin: 0,
@@ -482,7 +480,7 @@ const styles = {
   } as React.CSSProperties,
 
   label: {
-    fontSize: 'clamp(9px, 1vw, 10px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
     fontWeight: 'bold',
     letterSpacing: '0.8px',
     color: '#1a1a1a',
@@ -490,8 +488,8 @@ const styles = {
   } as React.CSSProperties,
 
   select: {
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px)',
-    fontSize: 'clamp(10px, 1.1vw, 11px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(10px, 1.5vw, 12px)',
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
     border: '1px solid #e0e0e0',
     backgroundColor: '#ffffff',
     fontFamily: '"Courier New", Courier, monospace',
@@ -507,7 +505,7 @@ const styles = {
   } as React.CSSProperties,
 
   arrow: {
-    fontSize: 'clamp(16px, 2.5vw, 20px)',
+    fontSize: 'clamp(18px, 2.8vw, 22px)',
     color: '#2196F3',
     fontWeight: 'bold',
   } as React.CSSProperties,
@@ -522,8 +520,8 @@ const styles = {
 
   searchInput: {
     width: '100%',
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px)',
-    fontSize: 'clamp(10px, 1.1vw, 11px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(10px, 1.5vw, 12px)',
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
     border: '1px solid #e0e0e0',
     backgroundColor: '#ffffff',
     fontFamily: '"Courier New", Courier, monospace',
@@ -547,30 +545,30 @@ const styles = {
   } as React.CSSProperties,
 
   dropdownItem: {
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(10px, 1.5vw, 12px)',
     borderBottom: '1px solid #f0f0f0',
     cursor: 'pointer',
     transition: 'background-color 0.2s',
   } as React.CSSProperties,
 
   productName: {
-    fontSize: 'clamp(9px, 1vw, 10px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
     fontWeight: 'bold',
     color: '#1a1a1a',
   } as React.CSSProperties,
 
   productAlias: {
-    fontSize: 'clamp(8px, 0.9vw, 9px)',
+    fontSize: 'clamp(10px, 1.1vw, 11px)',
     color: '#8a8a8a',
   } as React.CSSProperties,
 
   selectedProductInfo: {
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(10px, 1.5vw, 12px)',
     marginTop: '4px',
     backgroundColor: '#e8f5e9',
     color: '#2e7d32',
     borderRadius: '3px',
-    fontSize: 'clamp(9px, 1vw, 10px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
   } as React.CSSProperties,
 
   quantitySection: {
@@ -585,8 +583,8 @@ const styles = {
   } as React.CSSProperties,
 
   input: {
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px)',
-    fontSize: 'clamp(10px, 1.1vw, 11px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(10px, 1.5vw, 12px)',
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
     border: '1px solid #e0e0e0',
     backgroundColor: '#ffffff',
     fontFamily: '"Courier New", Courier, monospace',
@@ -596,8 +594,8 @@ const styles = {
   } as React.CSSProperties,
 
   addBtn: {
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(12px, 1.8vw, 16px)',
-    fontSize: 'clamp(9px, 1vw, 10px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(14px, 2vw, 18px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
     fontWeight: 'bold',
     letterSpacing: '0.8px',
     color: '#ffffff',
@@ -614,7 +612,7 @@ const styles = {
   } as React.CSSProperties,
 
   tableHeader: {
-    fontSize: 'clamp(10px, 1.1vw, 11px)',
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
     fontWeight: 'bold',
     letterSpacing: '0.8px',
     color: '#1a1a1a',
@@ -632,7 +630,7 @@ const styles = {
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    fontSize: 'clamp(9px, 1vw, 10px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
   } as React.CSSProperties,
 
   tableHeaderRow: {
@@ -641,7 +639,7 @@ const styles = {
   } as React.CSSProperties,
 
   th: {
-    padding: 'clamp(8px, 1.5vw, 12px)',
+    padding: 'clamp(10px, 1.6vw, 14px)',
     textAlign: 'left',
     fontWeight: 'bold',
     letterSpacing: '0.8px',
@@ -654,18 +652,13 @@ const styles = {
   } as React.CSSProperties,
 
   td: {
-    padding: 'clamp(8px, 1.5vw, 12px)',
+    padding: 'clamp(10px, 1.6vw, 14px)',
     color: '#595959',
   } as React.CSSProperties,
 
-  productCol: {
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  } as React.CSSProperties,
-
   removeBtn: {
-    padding: 'clamp(4px, 0.8vw, 6px) clamp(8px, 1.2vw, 10px)',
-    fontSize: 'clamp(8px, 0.9vw, 9px)',
+    padding: 'clamp(6px, 1vw, 8px) clamp(10px, 1.4vw, 12px)',
+    fontSize: 'clamp(10px, 1.1vw, 11px)',
     fontWeight: 'bold',
     letterSpacing: '0.5px',
     color: '#ffffff',
@@ -675,16 +668,6 @@ const styles = {
     fontFamily: '"Courier New", Courier, monospace',
     transition: 'all 0.3s',
     whiteSpace: 'nowrap',
-  } as React.CSSProperties,
-
-  totalRow: {
-    textAlign: 'right',
-    fontSize: 'clamp(10px, 1.1vw, 11px)',
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    padding: 'clamp(8px, 1.5vw, 12px)',
-    backgroundColor: '#f8f8f8',
-    borderTop: '1px solid #e0e0e0',
   } as React.CSSProperties,
 
   detailsSection: {
@@ -703,8 +686,8 @@ const styles = {
   } as React.CSSProperties,
 
   cancelBtn: {
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(14px, 2vw, 18px)',
-    fontSize: 'clamp(9px, 1vw, 10px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(16px, 2.2vw, 20px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
     fontWeight: 'bold',
     letterSpacing: '0.8px',
     color: '#1a1a1a',
@@ -716,8 +699,8 @@ const styles = {
   } as React.CSSProperties,
 
   transferBtn: {
-    padding: 'clamp(6px, 1.2vw, 10px) clamp(14px, 2vw, 18px)',
-    fontSize: 'clamp(9px, 1vw, 10px)',
+    padding: 'clamp(8px, 1.4vw, 12px) clamp(16px, 2.2vw, 20px)',
+    fontSize: 'clamp(11px, 1.2vw, 12px)',
     fontWeight: 'bold',
     letterSpacing: '0.8px',
     color: '#ffffff',
