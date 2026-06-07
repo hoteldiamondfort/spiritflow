@@ -42,6 +42,7 @@ export default function StockTransferPage() {
   const [toStockPoint, setToStockPoint] = useState('druvam');
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCases, setSelectedCases] = useState('');
   const [selectedBottles, setSelectedBottles] = useState('');
   const [referenceId, setReferenceId] = useState('');
@@ -96,15 +97,18 @@ export default function StockTransferPage() {
     return casesML + bottlesML;
   };
 
-  // Helper function to convert ML back to cases + bottles
-  const convertFromML = (product: Product, totalML: number) => {
-    const totalBottles = Math.floor(totalML / product.ml_per_bottle);
-    const cases = Math.floor(totalBottles / product.bottles_per_case);
-    const bottles = totalBottles % product.bottles_per_case;
-    return { cases, bottles };
+  const handleSelectProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setSearchTerm(product.product_name);
+    setShowDropdown(false);
   };
 
-  const handleAddProduct = (product: Product) => {
+  const handleAddProduct = () => {
+    if (!selectedProduct) {
+      alert('Please select a product first');
+      return;
+    }
+
     const cases = parseInt(selectedCases) || 0;
     const bottles = parseInt(selectedBottles) || 0;
 
@@ -114,21 +118,21 @@ export default function StockTransferPage() {
     }
 
     // Check if product already in cart
-    const exists = transferItems.find(item => item.product_id === product.product_id);
+    const exists = transferItems.find(item => item.product_id === selectedProduct.product_id);
     if (exists) {
       alert('Product already added. Please remove and add again with new quantity.');
       return;
     }
 
-    const totalML = convertToML(product, cases, bottles);
+    const totalML = convertToML(selectedProduct, cases, bottles);
 
     const newItem: TransferItem = {
-      id: `${product.product_id}-${Date.now()}`,
-      product_id: product.product_id,
-      product_name: product.product_name,
-      product_alias: product.product_alias,
-      ml_per_bottle: product.ml_per_bottle,
-      bottles_per_case: product.bottles_per_case,
+      id: `${selectedProduct.product_id}-${Date.now()}`,
+      product_id: selectedProduct.product_id,
+      product_name: selectedProduct.product_name,
+      product_alias: selectedProduct.product_alias,
+      ml_per_bottle: selectedProduct.ml_per_bottle,
+      bottles_per_case: selectedProduct.bottles_per_case,
       cases,
       bottles,
       total_ml: totalML
@@ -136,6 +140,7 @@ export default function StockTransferPage() {
 
     setTransferItems([...transferItems, newItem]);
     setSearchTerm('');
+    setSelectedProduct(null);
     setSelectedCases('');
     setSelectedBottles('');
     setShowDropdown(false);
@@ -246,8 +251,11 @@ Ready to confirm?
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       setShowDropdown(true);
+                      setSelectedProduct(null);
                     }}
-                    onFocus={() => setShowDropdown(true)}
+                    onFocus={() => {
+                      if (searchTerm) setShowDropdown(true);
+                    }}
                     style={styles.searchInput}
                   />
                   
@@ -256,10 +264,7 @@ Ready to confirm?
                       {filteredProducts.slice(0, 10).map(product => (
                         <div 
                           key={product.product_id}
-                          onClick={() => {
-                            setSearchTerm('');
-                            setShowDropdown(false);
-                          }}
+                          onClick={() => handleSelectProduct(product)}
                           style={styles.dropdownItem}
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
@@ -270,6 +275,14 @@ Ready to confirm?
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {selectedProduct && (
+                    <div style={styles.selectedProductInfo}>
+                      <span style={{fontSize: 'clamp(9px, 1vw, 10px)'}}>
+                        ✓ {selectedProduct.product_name} selected
+                      </span>
                     </div>
                   )}
                 </div>
@@ -302,21 +315,7 @@ Ready to confirm?
                   </div>
 
                   <button
-                    onClick={() => {
-                      if (!searchTerm) {
-                        alert('Please search and select a product first');
-                        return;
-                      }
-                      const selected = filteredProducts.find(p =>
-                        p.product_name.toUpperCase() === searchTerm.toUpperCase() ||
-                        p.product_alias.toUpperCase() === searchTerm.toUpperCase()
-                      );
-                      if (selected) {
-                        handleAddProduct(selected);
-                      } else {
-                        alert('Please select a product from the dropdown');
-                      }
-                    }}
+                    onClick={handleAddProduct}
                     style={styles.addBtn}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
@@ -407,6 +406,7 @@ Ready to confirm?
                 setFromStockPoint('warehouse');
                 setToStockPoint('druvam');
                 setSearchTerm('');
+                setSelectedProduct(null);
                 setSelectedCases('');
                 setSelectedBottles('');
                 setReferenceId('');
@@ -562,6 +562,15 @@ const styles = {
   productAlias: {
     fontSize: 'clamp(8px, 0.9vw, 9px)',
     color: '#8a8a8a',
+  } as React.CSSProperties,
+
+  selectedProductInfo: {
+    padding: 'clamp(6px, 1.2vw, 10px) clamp(10px, 1.5vw, 12px)',
+    marginTop: '4px',
+    backgroundColor: '#e8f5e9',
+    color: '#2e7d32',
+    borderRadius: '3px',
+    fontSize: 'clamp(9px, 1vw, 10px)',
   } as React.CSSProperties,
 
   quantitySection: {
