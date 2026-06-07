@@ -1,23 +1,31 @@
 const express = require('express');
 const router = express.Router();
-const { supabase } = require('../config/supabase');
 
-// POST /api/stock-transfer - Create stock transfer
-// Request body:
-// {
-//   "items": [
-//     { "product_id": "uuid", "quantity_ml": 7800 },
-//     { "product_id": "uuid", "quantity_ml": 3900 }
-//   ],
-//   "from_stock_point_id": "warehouse",
-//   "to_stock_point_id": "druvam",
-//   "reference_id": "TRANSFER-001",  // Optional
-//   "notes": "Test transfer",         // Optional
-//   "created_by": "user-uuid"
-// }
+// Import Supabase with proper error handling
+let supabase;
+try {
+  const supabaseConfig = require('../config/supabase');
+  // Handle different export styles
+  supabase = supabaseConfig.supabase || supabaseConfig.default || supabaseConfig;
+  
+  if (!supabase) {
+    throw new Error('Supabase client not found in config');
+  }
+  console.log('✅ Supabase client loaded');
+} catch (error) {
+  console.error('❌ Failed to load Supabase client:', error.message);
+}
 
 router.post('/', async (req, res) => {
   try {
+    // Check if supabase is available
+    if (!supabase) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Supabase client not initialized'
+      });
+    }
+
     const {
       items,
       from_stock_point_id,
@@ -27,11 +35,13 @@ router.post('/', async (req, res) => {
       created_by
     } = req.body;
 
-    // ========================================
-    // VALIDATION
-    // ========================================
+    console.log('🔍 DEBUG: Received stock transfer request');
+    console.log('Items:', JSON.stringify(items, null, 2));
+    console.log('From:', from_stock_point_id);
+    console.log('To:', to_stock_point_id);
+    console.log('User:', created_by);
 
-    // Check items
+    // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         status: 'error',
@@ -39,7 +49,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Check stock points
     if (!from_stock_point_id || !to_stock_point_id) {
       return res.status(400).json({
         status: 'error',
@@ -69,7 +78,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Check user
     if (!created_by) {
       return res.status(400).json({
         status: 'error',
@@ -77,10 +85,8 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // ========================================
-    // VALIDATE STOCK AVAILABILITY
-    // ========================================
-
+    // Validate stock availability
+    console.log('🔍 DEBUG: Validating stock availability...');
     for (const item of items) {
       if (!item.product_id || !item.quantity_ml) {
         return res.status(400).json({
@@ -104,12 +110,15 @@ router.post('/', async (req, res) => {
         .single();
 
       if (productError || !product) {
+        console.log('❌ Product not found:', item.product_id, productError);
         return res.status(404).json({
           status: 'error',
           message: `Product with ID ${item.product_id} not found`,
           code: 'PRODUCT_NOT_FOUND'
         });
       }
+
+      console.log('✅ Product found:', product.product_alias);
 
       // Check stock availability
       const { data: stock, error: stockError } = await supabase
@@ -120,6 +129,7 @@ router.post('/', async (req, res) => {
         .single();
 
       if (stockError || !stock) {
+        console.log('❌ Stock record not found:', { product_id: item.product_id, stock_point_id: from_stock_point_id }, stockError);
         return res.status(404).json({
           status: 'error',
           message: `Stock record not found for ${product.product_alias} at ${from_stock_point_id}`,
@@ -127,7 +137,10 @@ router.post('/', async (req, res) => {
         });
       }
 
+      console.log('✅ Stock found:', stock.current_quantity_ml, 'ML');
+
       if (stock.current_quantity_ml < item.quantity_ml) {
+        console.log('❌ Insufficient stock');
         return res.status(400).json({
           status: 'error',
           message: `Insufficient stock for ${product.product_alias}. Available: ${stock.current_quantity_ml} ML, Requested: ${item.quantity_ml} ML`,
@@ -136,10 +149,8 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // ========================================
-    // CREATE TRANSACTIONS
-    // ========================================
-
+    // Create transactions
+    console.log('🔍 DEBUG: Creating transactions...');
     const transactions = items.map(item => ({
       product_id: item.product_id,
       from_stock_point_id,
@@ -152,20 +163,38 @@ router.post('/', async (req, res) => {
       outlet_id: null
     }));
 
-    // Insert all transactions at once
+    console.log('Transactions to insert:', JSON.stringify(transactions, null, 2));
+
+    // Insert all transactions
+    console.log('🔍 DEBUG: Calling supabase.from().insert()...');
     const { data: insertedTransactions, error: insertError } = await supabase
       .from('stock_transactions')
       .insert(transactions)
       .select();
 
+    console.log('🔍 DEBUG: Insert response received');
+    console.log('Data:', insertedTransactions);
+    console.log('Error:', insertError);
+
     if (insertError) {
-      console.error('Error inserting stock transfer transactions:', insertError);
-      throw insertError;
+      console.error('❌ Supabase error:', insertError);
+      return res.status(400).json({
+        status: 'error',
+        message: insertError.message || 'Failed to insert transactions',
+        details: insertError
+      });
     }
 
-    // ========================================
-    // RESPONSE
-    // ========================================
+    if (!insertedTransactions || insertedTransactions.length === 0) {
+      console.error('❌ No transactions were inserted! Check RLS policies.');
+      return res.status(400).json({
+        status: 'error',
+        message: 'No transactions were inserted. Check database RLS policies.',
+        debug: 'insertedTransactions is empty'
+      });
+    }
+
+    console.log('✅ Transactions inserted successfully:', insertedTransactions.length);
 
     res.status(201).json({
       status: 'success',
@@ -187,11 +216,11 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Stock transfer error:', error);
+    console.error('❌ Stock transfer error:', error);
     res.status(500).json({
       status: 'error',
       message: error.message || 'Internal server error',
-      details: error.details || null
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
