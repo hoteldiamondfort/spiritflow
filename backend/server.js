@@ -70,6 +70,16 @@ try {
   console.error(error.stack);
 }
 
+// Load stock-transfer routes with error handling
+try {
+  const stockTransferRoutes = require('./src/routes/stock-transfer');
+  app.use('/api/stock-transfer', stockTransferRoutes);
+  console.log('✅ Stock-transfer routes loaded successfully');
+} catch (error) {
+  console.error('❌ Failed to load stock-transfer routes:', error.message);
+  console.error(error.stack);
+}
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
