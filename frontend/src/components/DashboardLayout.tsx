@@ -154,6 +154,15 @@ export default function DashboardLayout({ children, user: initialUser }: Dashboa
                     <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK TRANSFER</span>
                   </button>
                   <button 
+                    onClick={() => router.push('/dashboard/stock-adjustment')} 
+                    style={styles.menuItem}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                  >
+                    <span style={styles.menuIcon}>⚙️</span>
+                    <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK ADJUSTMENT</span>
+                  </button>
+                  <button 
                     onClick={() => router.push('#')} 
                     style={styles.menuItem}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
