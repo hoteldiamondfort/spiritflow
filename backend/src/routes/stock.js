@@ -1,6 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { supabase } = require('../config/supabase');
+
+// Import Supabase - handle both export styles
+let supabase;
+try {
+  const supabaseConfig = require('../config/supabase');
+  // Try different export patterns
+  supabase = supabaseConfig.supabase || supabaseConfig.default || supabaseConfig;
+} catch (error) {
+  console.error('Failed to import Supabase:', error.message);
+}
 
 // Helper function to calculate cases and bottles from ML
 const calculateCasesBottles = (ml, mlPerBottle, bottlesPerCase) => {
@@ -14,6 +23,14 @@ const calculateCasesBottles = (ml, mlPerBottle, bottlesPerCase) => {
 // Query: ?product_id=uuid (optional)
 router.get('/total', async (req, res) => {
   try {
+    // Check if Supabase is initialized
+    if (!supabase) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Supabase client not initialized'
+      });
+    }
+
     const { product_id } = req.query;
 
     const { data: stockData, error } = await supabase
@@ -31,7 +48,17 @@ router.get('/total', async (req, res) => {
       `)
       .order('product_alias');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw error;
+    }
+
+    if (!stockData) {
+      return res.json({
+        status: 'success',
+        data: []
+      });
+    }
 
     // Group by product and calculate totals
     const result = stockData.map(product => {
@@ -42,10 +69,12 @@ router.get('/total', async (req, res) => {
       };
       let total = 0;
 
-      product.stock_inventory.forEach(stock => {
-        breakdown[stock.stock_point_id] = stock.current_quantity_ml;
-        total += stock.current_quantity_ml;
-      });
+      if (product.stock_inventory && Array.isArray(product.stock_inventory)) {
+        product.stock_inventory.forEach(stock => {
+          breakdown[stock.stock_point_id] = stock.current_quantity_ml;
+          total += stock.current_quantity_ml;
+        });
+      }
 
       return {
         product_id: product.product_id,
@@ -79,7 +108,7 @@ router.get('/total', async (req, res) => {
     console.error('Error fetching stock total:', error);
     res.status(500).json({
       status: 'error',
-      message: error.message
+      message: error.message || 'Internal server error'
     });
   }
 });
