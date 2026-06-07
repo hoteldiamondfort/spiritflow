@@ -177,7 +177,7 @@ export default function StockTransferPage() {
     const requestedML = convertToML(selectedProduct, cases, bottles);
     
     if (requestedML > fromLocationStock) {
-      setErrorMessage(`Insufficient stock for ${selectedProduct.product_alias}. Available: ${fromLocationStock} ML, Requested: ${requestedML} ML`);
+      setErrorMessage(`Insufficient stock for ${selectedProduct.product_alias}`);
       return;
     }
 
@@ -296,6 +296,9 @@ Ready to confirm?
         throw new Error(data.message || 'Transfer failed');
       }
 
+      // Get display name - use user object display_name if available, otherwise use email or auth_id
+      const transferredBy = user?.display_name || user?.email || user?.auth_id || 'Unknown';
+
       // ✅ SUCCESS - Generate Report with Live Data
       const { totalCases, totalBottles } = calculateTotals(transferItems);
       
@@ -305,7 +308,7 @@ Ready to confirm?
         date_time: dateTime,
         reference_id: referenceId || 'N/A',
         notes: notes || 'N/A',
-        created_by: user?.auth_id || 'Unknown',
+        created_by: transferredBy,
         items: transferItems,
         total_cases: totalCases,
         total_bottles: totalBottles,
@@ -320,7 +323,6 @@ Ready to confirm?
         `✅ Transfer successful! ${transferItems.length} product(s) transferred.`
       );
 
-      // Hide success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
@@ -334,12 +336,164 @@ Ready to confirm?
   };
 
   const handlePrint = () => {
-    window.print();
+    const printContent = document.getElementById('print-report');
+    if (!printContent) return;
+
+    const printWindow = window.open('', '', 'width=900,height=1200');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Stock Transfer Report</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: "Courier New", Courier, monospace;
+            color: #1a1a1a;
+            padding: 20px;
+            background: white;
+          }
+          .report-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+          }
+          .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 20px;
+          }
+          .report-title {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+          }
+          .report-subtitle {
+            font-size: 12px;
+            color: #8a8a8a;
+          }
+          .report-details {
+            background: #f8f8f8;
+            padding: 16px;
+            margin-bottom: 24px;
+            border-radius: 4px;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 12px;
+          }
+          .detail-label {
+            font-weight: bold;
+            min-width: 140px;
+            color: #1a1a1a;
+          }
+          .detail-value {
+            flex: 1;
+            text-align: right;
+            color: #595959;
+          }
+          .divider {
+            border-top: 2px solid #e0e0e0;
+            margin: 24px 0;
+          }
+          .table-section {
+            margin-bottom: 24px;
+          }
+          .table-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+          }
+          thead {
+            background: #f0f0f0;
+            border-bottom: 2px solid #e0e0e0;
+          }
+          th {
+            padding: 14px;
+            text-align: left;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+          }
+          td {
+            padding: 14px;
+            color: #595959;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .product-name {
+            font-weight: bold;
+            color: #1a1a1a;
+            font-size: 12px;
+          }
+          .product-desc {
+            font-size: 11px;
+            color: #8a8a8a;
+            margin-top: 4px;
+          }
+          .totals {
+            background: #f8f8f8;
+            padding: 16px;
+            margin-bottom: 24px;
+            border-radius: 4px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 12px;
+          }
+          .total-label {
+            font-weight: bold;
+            color: #1a1a1a;
+          }
+          .total-value {
+            font-weight: bold;
+            color: #2196F3;
+            font-size: 13px;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+          }
+          .footer-text {
+            font-size: 11px;
+            color: #8a8a8a;
+            margin: 6px 0;
+          }
+        </style>
+      </head>
+      <body>
+        ${printContent.innerHTML}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+    printWindow.close();
   };
 
   const handleCloseReport = () => {
     setShowReport(false);
-    // Reset form
     setFromStockPoint('warehouse');
     setToStockPoint('druvam');
     setSearchTerm('');
@@ -356,7 +510,7 @@ Ready to confirm?
   const dropdownsDisabled = transferItems.length > 0 || isTransferring;
 
   // ========================================
-  // REPORT VIEW
+  // REPORT VIEW - NO ML, DISPLAY NAME, PRINT ONLY CONTENT
   // ========================================
   if (showReport && reportData) {
     return (
@@ -382,8 +536,8 @@ Ready to confirm?
             </button>
           </div>
 
-          {/* Report Content */}
-          <div style={styles.reportContainer}>
+          {/* Report Content - ID for print */}
+          <div id="print-report" style={styles.reportContainer}>
             {/* Header */}
             <div style={styles.reportHeader}>
               <h1 style={styles.reportTitle}>STOCK TRANSFER REPORT</h1>
@@ -422,17 +576,16 @@ Ready to confirm?
 
             <div style={styles.reportDivider}></div>
 
-            {/* Items Table */}
+            {/* Items Table - NO ML COLUMN */}
             <div style={styles.reportTableSection}>
               <h2 style={styles.reportTableTitle}>PRODUCTS TRANSFERRED</h2>
               <div style={styles.reportTableContainer}>
                 <table style={styles.reportTable}>
                   <thead>
                     <tr style={styles.reportTableHeader}>
-                      <th style={{...styles.reportTh, width: '40%'}}>PRODUCT</th>
-                      <th style={{...styles.reportTh, width: '15%', textAlign: 'center'}}>CASES</th>
-                      <th style={{...styles.reportTh, width: '15%', textAlign: 'center'}}>BOTTLES</th>
-                      <th style={{...styles.reportTh, width: '30%', textAlign: 'right'}}>QTY (ML)</th>
+                      <th style={{...styles.reportTh, width: '50%'}}>PRODUCT</th>
+                      <th style={{...styles.reportTh, width: '25%', textAlign: 'center'}}>CASES</th>
+                      <th style={{...styles.reportTh, width: '25%', textAlign: 'center'}}>BOTTLES</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -444,7 +597,6 @@ Ready to confirm?
                         </td>
                         <td style={{...styles.reportTd, textAlign: 'center'}}>{item.cases}</td>
                         <td style={{...styles.reportTd, textAlign: 'center'}}>{item.bottles}</td>
-                        <td style={{...styles.reportTd, textAlign: 'right'}}>{item.total_ml}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -452,7 +604,7 @@ Ready to confirm?
               </div>
             </div>
 
-            {/* Totals */}
+            {/* Totals - NO ML */}
             <div style={styles.reportTotals}>
               <div style={styles.reportTotalRow}>
                 <span style={styles.reportTotalLabel}>TOTAL CASES:</span>
@@ -476,41 +628,11 @@ Ready to confirm?
                 Report Generated: {formatDateTime()}
               </p>
               <p style={styles.reportFooterText}>
-                Transaction IDs: {reportData.transaction_ids.join(', ')}
-              </p>
-              <p style={styles.reportFooterText}>
                 This is an official Stock Transfer Report. Please retain for records.
               </p>
             </div>
           </div>
         </div>
-
-        {/* Print Styles */}
-        <style>{`
-          @media print {
-            body, html {
-              margin: 0;
-              padding: 0;
-              background: white;
-            }
-            
-            .no-print {
-              display: none !important;
-            }
-            
-            [style*="padding"] {
-              page-break-inside: avoid;
-            }
-            
-            table {
-              page-break-inside: avoid;
-            }
-            
-            tr {
-              page-break-inside: avoid;
-            }
-          }
-        `}</style>
       </DashboardLayout>
     );
   }
@@ -1143,9 +1265,6 @@ const styles = {
     transition: 'all 0.3s',
   } as React.CSSProperties,
 
-  // ========================================
-  // REPORT STYLES
-  // ========================================
   printButtonContainer: {
     marginBottom: 'clamp(12px, 2vw, 16px)',
     display: 'flex',
@@ -1189,6 +1308,8 @@ const styles = {
   reportHeader: {
     textAlign: 'center',
     marginBottom: 'clamp(20px, 3vw, 30px)',
+    borderBottom: '2px solid #e0e0e0',
+    paddingBottom: '20px',
   } as React.CSSProperties,
 
   reportTitle: {
