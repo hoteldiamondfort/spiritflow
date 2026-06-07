@@ -319,6 +319,19 @@ export default function StockAdjustmentPage() {
     }
   };
 
+  const getPreviousFormat = (item: AdjustmentItem, stockPoint: StockPointId | ''): string => {
+    const { cases, bottles, pegs } = convertFromML(
+      products.find(p => p.product_id === item.product_id)!,
+      item.current_ml
+    );
+
+    if (stockPoint === 'warehouse') {
+      return `${cases} Case(s) + ${bottles} Bottle(s)`;
+    } else {
+      return `${bottles} Bottle(s) + ${pegs} Peg(s)`;
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout user={user}>
@@ -379,8 +392,15 @@ export default function StockAdjustmentPage() {
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.tableHeader}>
-                      <th style={{...styles.th, width: '40%'}}>PRODUCT</th>
-                      <th style={{...styles.th, width: '60%'}}>ADJUSTED TO</th>
+                      <th style={{...styles.th, width: '25%'}}>PRODUCT</th>
+                      {confirmationData.adjustmentOption === 'CORRECTION' ? (
+                        <>
+                          <th style={{...styles.th, width: '25%'}}>PREVIOUS STOCK</th>
+                          <th style={{...styles.th, width: '25%'}}>CHANGED TO</th>
+                        </>
+                      ) : (
+                        <th style={{...styles.th, width: '50%'}}>ACTUAL PHYSICAL STOCK</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -392,9 +412,20 @@ export default function StockAdjustmentPage() {
                             {item.product_name}
                           </div>
                         </td>
-                        <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
-                          {getDisplayFormat(item, confirmationData.stockPoint)}
-                        </td>
+                        {confirmationData.adjustmentOption === 'CORRECTION' ? (
+                          <>
+                            <td style={{...styles.td, color: '#666'}}>
+                              {getPreviousFormat(item, confirmationData.stockPoint)}
+                            </td>
+                            <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
+                              {getDisplayFormat(item, confirmationData.stockPoint)}
+                            </td>
+                          </>
+                        ) : (
+                          <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
+                            {getDisplayFormat(item, confirmationData.stockPoint)}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
