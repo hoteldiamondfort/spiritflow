@@ -163,13 +163,13 @@ export default function DashboardLayout({ children, user: initialUser }: Dashboa
                     <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK ADJUSTMENT</span>
                   </button>
                   <button 
-                    onClick={() => router.push('#')} 
+                    onClick={() => router.push('/dashboard/stock-insight')} 
                     style={styles.menuItem}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
                   >
                     <span style={styles.menuIcon}>📊</span>
-                    <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK VIEW</span>
+                    <span style={{display: menuOpen ? 'inline' : 'none'}}>STOCK INSIGHT</span>
                   </button>
                 </div>
               )}
