@@ -6,13 +6,17 @@ import DashboardLayout from '@/components/DashboardLayout';
 
 const PEG_SIZE_ML = 60;
 
-interface StockItem {
+interface Product {
   product_id: string;
   product_name: string;
   product_alias: string;
   category_name: string;
   ml_per_bottle: number;
   bottles_per_case: number;
+}
+
+interface StockItem {
+  product_id: string;
   total_quantity_ml: number;
   breakdown: {
     warehouse: number;
@@ -21,9 +25,13 @@ interface StockItem {
   };
 }
 
+interface CombinedItem extends Product, StockItem {}
+
 export default function StockInsightPage() {
-  const [stockData, setStockData] = useState<StockItem[]>([]);
-  const [filteredData, setFilteredData] = useState<StockItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stockData, setStockData] = useState<{[key: string]: StockItem}>({});
+  const [combinedData, setCombinedData] = useState<CombinedItem[]>([]);
+  const [filteredData, setFilteredData] = useState<CombinedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
@@ -42,25 +50,52 @@ export default function StockInsightPage() {
     }
 
     setUser(JSON.parse(userData));
-    fetchStockData();
+    fetchData();
   }, [router]);
 
-  const fetchStockData = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
 
-      const stockResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stock/total`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const stockDataResponse = await stockResponse.json();
+      // Fetch both products and stock data
+      const [productsRes, stockRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/stock/total`, {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      ]);
 
-      if (stockDataResponse.status === 'success' && Array.isArray(stockDataResponse.data)) {
-        const data: StockItem[] = stockDataResponse.data;
-        setStockData(data);
+      const productsData = await productsRes.json();
+      const stockDataResponse = await stockRes.json();
 
-        // Extract unique categories and sort
+      if (productsData.status === 'success' && stockDataResponse.status === 'success') {
+        // Store products
+        setProducts(productsData.data);
+
+        // Create stock map for easy lookup
+        const stockMap: {[key: string]: StockItem} = {};
+        stockDataResponse.data.forEach((item: StockItem) => {
+          stockMap[item.product_id] = item;
+        });
+        setStockData(stockMap);
+
+        // Combine products with stock data
+        const combined: CombinedItem[] = productsData.data.map((product: Product) => {
+          const stock = stockMap[product.product_id] || {
+            product_id: product.product_id,
+            total_quantity_ml: 0,
+            breakdown: { warehouse: 0, druvam: 0, spadikam: 0 }
+          };
+          return { ...product, ...stock };
+        });
+
+        setCombinedData(combined);
+
+        // Extract unique categories
         const catSet = new Set<string>();
-        data.forEach((item: StockItem) => {
+        combined.forEach((item: CombinedItem) => {
           if (item.category_name) {
             catSet.add(item.category_name);
           }
@@ -68,17 +103,17 @@ export default function StockInsightPage() {
         const cats = Array.from(catSet).sort();
         setCategories(cats);
 
-        // Initial filter
-        applyFilters(data, 'all', '');
+        // Apply initial filters
+        applyFilters(combined, 'all', '');
       }
     } catch (error) {
-      console.error('Error fetching stock data:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = (data: StockItem[], category: string, search: string) => {
+  const applyFilters = (data: CombinedItem[], category: string, search: string) => {
     let filtered = [...data];
 
     // Filter by category
@@ -108,12 +143,12 @@ export default function StockInsightPage() {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    applyFilters(stockData, category, searchQuery);
+    applyFilters(combinedData, category, searchQuery);
   };
 
   const handleSearchChange = (search: string) => {
     setSearchQuery(search);
-    applyFilters(stockData, selectedCategory, search);
+    applyFilters(combinedData, selectedCategory, search);
   };
 
   const convertFromML = (ml: number, mlPerBottle: number): { bottles: number; pegs: number } => {
@@ -191,7 +226,7 @@ export default function StockInsightPage() {
 
           <div style={styles.actionBar}>
             <button
-              onClick={fetchStockData}
+              onClick={fetchData}
               style={styles.refreshBtn}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
