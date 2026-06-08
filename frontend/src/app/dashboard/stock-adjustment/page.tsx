@@ -127,16 +127,29 @@ export default function StockAdjustmentPage() {
     }
   };
 
-  const convertFromML = (product: Product, totalML: number) => {
-    const totalBottles = Math.floor(totalML / product.ml_per_bottle);
-    const cases = Math.floor(totalBottles / product.bottles_per_case);
-    const bottles = totalBottles % product.bottles_per_case;
+  const convertFromML = (product: Product, totalML: number, isWarehouseMode: boolean) => {
+    if (isWarehouseMode) {
+      // WAREHOUSE: Break into Cases + Bottles (+ 0 Pegs)
+      const totalBottles = Math.floor(totalML / product.ml_per_bottle);
+      const cases = Math.floor(totalBottles / product.bottles_per_case);
+      const bottles = totalBottles % product.bottles_per_case;
 
-    const remainingML = totalML - (cases * product.bottles_per_case * product.ml_per_bottle) - (bottles * product.ml_per_bottle);
-    const pegsExact = remainingML / PEG_SIZE_ML;
-    const pegs = Math.floor(pegsExact * 2) / 2;
+      const remainingML = totalML - (cases * product.bottles_per_case * product.ml_per_bottle) - (bottles * product.ml_per_bottle);
+      const pegsExact = remainingML / PEG_SIZE_ML;
+      const pegs = Math.floor(pegsExact * 2) / 2;
 
-    return { cases, bottles, pegs };
+      return { cases, bottles, pegs };
+    } else {
+      // OUTLETS (Druvam/Spadikam): Break into Bottles + Pegs (0 Cases)
+      const totalBottles = Math.floor(totalML / product.ml_per_bottle);
+      const bottles = totalBottles; // ALL bottles, no case grouping
+
+      const remainingML = totalML - (bottles * product.ml_per_bottle);
+      const pegsExact = remainingML / PEG_SIZE_ML;
+      const pegs = Math.floor(pegsExact * 2) / 2;
+
+      return { cases: 0, bottles, pegs };
+    }
   };
 
   const convertToML = (product: Product, cases: number, bottles: number, pegs: number): number => {
@@ -172,21 +185,12 @@ export default function StockAdjustmentPage() {
         return a.product_alias.localeCompare(b.product_alias);
       });
 
+      const isWarehouseMode = validStockPoint === 'warehouse';
+
       const items: AdjustmentItem[] = sortedProducts.map(product => {
         const stock = stockData[product.product_id];
         const currentML = stock?.breakdown[validStockPoint] || 0;
-        const { cases, bottles, pegs } = convertFromML(product, currentML);
-
-        // Zero out unused columns based on stock point
-        let finalCases = cases;
-        let finalBottles = bottles;
-        let finalPegs = pegs;
-
-        if (validStockPoint === 'warehouse') {
-          finalPegs = 0;  // Warehouse: Cases + Bottles only
-        } else {
-          finalCases = 0;  // Outlets: Bottles + Pegs only
-        }
+        const { cases, bottles, pegs } = convertFromML(product, currentML, isWarehouseMode);
 
         return {
           product_id: product.product_id,
@@ -196,9 +200,9 @@ export default function StockAdjustmentPage() {
           ml_per_bottle: product.ml_per_bottle,
           bottles_per_case: product.bottles_per_case,
           current_ml: currentML,
-          adjusted_cases: finalCases,
-          adjusted_bottles: finalBottles,
-          adjusted_pegs: finalPegs,
+          adjusted_cases: cases,
+          adjusted_bottles: bottles,
+          adjusted_pegs: pegs,
           adjusted_ml: currentML
         };
       });
@@ -331,9 +335,11 @@ export default function StockAdjustmentPage() {
   };
 
   const getPreviousFormat = (item: AdjustmentItem, stockPoint: StockPointId | ''): string => {
+    const isWarehouseMode = stockPoint === 'warehouse';
     const { cases, bottles, pegs } = convertFromML(
       products.find(p => p.product_id === item.product_id)!,
-      item.current_ml
+      item.current_ml,
+      isWarehouseMode
     );
 
     if (stockPoint === 'warehouse') {
