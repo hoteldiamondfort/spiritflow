@@ -129,20 +129,13 @@ export default function StockAdjustmentPage() {
 
   const convertFromML = (product: Product, totalML: number, isWarehouseMode: boolean) => {
     if (isWarehouseMode) {
-      // WAREHOUSE: Break into Cases + Bottles (+ 0 Pegs)
-      const totalBottles = Math.floor(totalML / product.ml_per_bottle);
-      const cases = Math.floor(totalBottles / product.bottles_per_case);
-      const bottles = totalBottles % product.bottles_per_case;
-
-      const remainingML = totalML - (cases * product.bottles_per_case * product.ml_per_bottle) - (bottles * product.ml_per_bottle);
-      const pegsExact = remainingML / PEG_SIZE_ML;
-      const pegs = Math.floor(pegsExact * 2) / 2;
-
-      return { cases, bottles, pegs };
+      // WAREHOUSE: Bottles only (no cases)
+      const bottles = Math.floor(totalML / product.ml_per_bottle);
+      return { cases: 0, bottles, pegs: 0 };
     } else {
-      // OUTLETS (Druvam/Spadikam): Break into Bottles + Pegs (0 Cases)
+      // OUTLETS (Druvam/Spadikam): Bottles + Pegs
       const totalBottles = Math.floor(totalML / product.ml_per_bottle);
-      const bottles = totalBottles; // ALL bottles, no case grouping
+      const bottles = totalBottles;
 
       const remainingML = totalML - (bottles * product.ml_per_bottle);
       const pegsExact = remainingML / PEG_SIZE_ML;
@@ -211,7 +204,7 @@ export default function StockAdjustmentPage() {
     }, 0);
   };
 
-  const handleItemChange = (index: number, field: 'cases' | 'bottles' | 'pegs', value: string) => {
+  const handleItemChange = (index: number, field: 'bottles' | 'pegs', value: string) => {
     const numValue = field === 'pegs' ? parseFloat(value) || 0 : parseInt(value) || 0;
     const updatedItems = [...adjustmentItems];
     const item = updatedItems[index];
@@ -219,21 +212,18 @@ export default function StockAdjustmentPage() {
 
     if (!product) return;
 
-    if (field === 'cases') {
-      item.adjusted_cases = numValue;
-    } else if (field === 'bottles') {
+    if (field === 'bottles') {
       item.adjusted_bottles = numValue;
     } else if (field === 'pegs') {
       item.adjusted_pegs = numValue;
     }
 
-    // For warehouse: cases + bottles + 0 pegs
-    // For outlets: 0 cases + bottles + pegs
+    // For warehouse: bottles only (0 pegs)
+    // For outlets: bottles + pegs
     if (isWarehouse) {
       item.adjusted_pegs = 0;
-      item.adjusted_ml = convertToML(product, item.adjusted_cases, item.adjusted_bottles, 0);
+      item.adjusted_ml = convertToML(product, 0, item.adjusted_bottles, 0);
     } else {
-      item.adjusted_cases = 0;
       item.adjusted_ml = convertToML(product, 0, item.adjusted_bottles, item.adjusted_pegs);
     }
 
@@ -328,7 +318,7 @@ export default function StockAdjustmentPage() {
 
   const getDisplayFormat = (item: AdjustmentItem, stockPoint: StockPointId | ''): string => {
     if (stockPoint === 'warehouse') {
-      return `${item.adjusted_cases} Case(s) + ${item.adjusted_bottles} Bottle(s)`;
+      return `${item.adjusted_bottles} Bottle(s)`;
     } else {
       return `${item.adjusted_bottles} Bottle(s) + ${item.adjusted_pegs} Peg(s)`;
     }
@@ -343,7 +333,7 @@ export default function StockAdjustmentPage() {
     );
 
     if (stockPoint === 'warehouse') {
-      return `${cases} Case(s) + ${bottles} Bottle(s)`;
+      return `${bottles} Bottle(s)`;
     } else {
       return `${bottles} Bottle(s) + ${pegs} Peg(s)`;
     }
@@ -532,10 +522,7 @@ export default function StockAdjustmentPage() {
                       <tr style={styles.tableHeader}>
                         <th style={{...styles.th, width: '30%'}}>PRODUCT</th>
                         {isWarehouse ? (
-                          <>
-                            <th style={{...styles.th, width: '20%', textAlign: 'center'}}>CASES</th>
-                            <th style={{...styles.th, width: '20%', textAlign: 'center'}}>BOTTLES</th>
-                          </>
+                          <th style={{...styles.th, width: '20%', textAlign: 'center'}}>BOTTLES</th>
                         ) : (
                           <>
                             <th style={{...styles.th, width: '20%', textAlign: 'center'}}>BOTTLES</th>
@@ -558,49 +545,26 @@ export default function StockAdjustmentPage() {
                               {item.category_name}
                             </div>
                           </td>
-                          {isWarehouse ? (
-                            <>
-                              <td style={{...styles.td, padding: '8px 4px'}}>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={item.adjusted_cases}
-                                  onChange={(e) => handleItemChange(idx, 'cases', e.target.value)}
-                                  style={styles.tableInput}
-                                />
-                              </td>
-                              <td style={{...styles.td, padding: '8px 4px'}}>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={item.adjusted_bottles}
-                                  onChange={(e) => handleItemChange(idx, 'bottles', e.target.value)}
-                                  style={styles.tableInput}
-                                />
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td style={{...styles.td, padding: '8px 4px'}}>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={item.adjusted_bottles}
-                                  onChange={(e) => handleItemChange(idx, 'bottles', e.target.value)}
-                                  style={styles.tableInput}
-                                />
-                              </td>
-                              <td style={{...styles.td, padding: '8px 4px'}}>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.5"
-                                  value={item.adjusted_pegs}
-                                  onChange={(e) => handleItemChange(idx, 'pegs', e.target.value)}
-                                  style={styles.tableInput}
-                                />
-                              </td>
-                            </>
+                          <td style={{...styles.td, padding: '8px 4px'}}>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.adjusted_bottles}
+                              onChange={(e) => handleItemChange(idx, 'bottles', e.target.value)}
+                              style={styles.tableInput}
+                            />
+                          </td>
+                          {!isWarehouse && (
+                            <td style={{...styles.td, padding: '8px 4px'}}>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={item.adjusted_pegs}
+                                onChange={(e) => handleItemChange(idx, 'pegs', e.target.value)}
+                                style={styles.tableInput}
+                              />
+                            </td>
                           )}
                         </tr>
                       ))}
