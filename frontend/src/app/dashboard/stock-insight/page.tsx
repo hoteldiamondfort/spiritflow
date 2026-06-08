@@ -4,13 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 
-const STOCK_POINTS = [
-  { id: 'all', name: 'ALL STOCK POINTS' },
-  { id: 'warehouse', name: 'WAREHOUSE' },
-  { id: 'druvam', name: 'DRUVAM' },
-  { id: 'spadikam', name: 'SPADIKAM' }
-];
-
 const PEG_SIZE_ML = 60;
 
 interface StockItem {
@@ -36,7 +29,6 @@ export default function StockInsightPage() {
   const router = useRouter();
 
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedStockPoint, setSelectedStockPoint] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
 
@@ -62,16 +54,22 @@ export default function StockInsightPage() {
       });
       const stockDataResponse = await stockResponse.json();
 
-      if (stockDataResponse.status === 'success') {
-        const data = stockDataResponse.data;
+      if (stockDataResponse.status === 'success' && Array.isArray(stockDataResponse.data)) {
+        const data: StockItem[] = stockDataResponse.data;
         setStockData(data);
 
         // Extract unique categories and sort
-        const uniqueCats = Array.from(new Set(data.map((item: StockItem) => item.category_name))).sort() as string[];
-        setCategories(uniqueCats);
+        const catSet = new Set<string>();
+        data.forEach((item: StockItem) => {
+          if (item.category_name) {
+            catSet.add(item.category_name);
+          }
+        });
+        const cats = Array.from(catSet).sort();
+        setCategories(cats);
 
-        // Initial filter with default selections
-        applyFilters(data, 'all', 'all', '');
+        // Initial filter
+        applyFilters(data, 'all', '');
       }
     } catch (error) {
       console.error('Error fetching stock data:', error);
@@ -80,15 +78,15 @@ export default function StockInsightPage() {
     }
   };
 
-  const applyFilters = (data: StockItem[], category: string, stockPoint: string, search: string) => {
+  const applyFilters = (data: StockItem[], category: string, search: string) => {
     let filtered = [...data];
 
     // Filter by category
-    if (category !== 'all') {
+    if (category !== 'all' && category) {
       filtered = filtered.filter(item => item.category_name === category);
     }
 
-    // Filter by search query (product name or alias)
+    // Filter by search query
     if (search.trim()) {
       const lowerSearch = search.toLowerCase();
       filtered = filtered.filter(item =>
@@ -110,17 +108,12 @@ export default function StockInsightPage() {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    applyFilters(stockData, category, selectedStockPoint, searchQuery);
-  };
-
-  const handleStockPointChange = (stockPoint: string) => {
-    setSelectedStockPoint(stockPoint);
-    applyFilters(stockData, selectedCategory, stockPoint, searchQuery);
+    applyFilters(stockData, category, searchQuery);
   };
 
   const handleSearchChange = (search: string) => {
     setSearchQuery(search);
-    applyFilters(stockData, selectedCategory, selectedStockPoint, search);
+    applyFilters(stockData, selectedCategory, search);
   };
 
   const convertFromML = (ml: number, mlPerBottle: number): { bottles: number; pegs: number } => {
@@ -184,20 +177,7 @@ export default function StockInsightPage() {
               </select>
             </div>
 
-            <div style={styles.filterGroup}>
-              <label style={styles.label}>STOCK POINT</label>
-              <select
-                value={selectedStockPoint}
-                onChange={(e) => handleStockPointChange(e.target.value)}
-                style={styles.select}
-              >
-                {STOCK_POINTS.map(point => (
-                  <option key={point.id} value={point.id}>{point.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={styles.filterGroup}>
+            <div style={{...styles.filterGroup, gridColumn: '1 / -1'}}>
               <label style={styles.label}>SEARCH PRODUCT</label>
               <input
                 type="text"
@@ -254,11 +234,11 @@ export default function StockInsightPage() {
             <table style={styles.table}>
               <thead>
                 <tr style={styles.tableHeader}>
-                  <th style={{...styles.th, width: '35%'}}>PRODUCT</th>
+                  <th style={{...styles.th, width: '30%'}}>PRODUCT</th>
                   <th style={{...styles.th, width: '20%'}}>WAREHOUSE</th>
                   <th style={{...styles.th, width: '20%'}}>DRUVAM</th>
                   <th style={{...styles.th, width: '20%'}}>SPADIKAM</th>
-                  <th style={{...styles.th, width: '15%'}}>TOTAL</th>
+                  <th style={{...styles.th, width: '15%', textAlign: 'right'}}>TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -268,10 +248,10 @@ export default function StockInsightPage() {
                       <div style={{fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
                         {item.product_alias}
                       </div>
-                      <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a'}}>
+                      <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a', marginTop: '2px'}}>
                         {item.product_name}
                       </div>
-                      <div style={{fontSize: 'clamp(9px, 1vw, 10px)', color: '#aaa', marginTop: '2px'}}>
+                      <div style={{fontSize: 'clamp(9px, 1vw, 10px)', color: '#aaa', marginTop: '4px', fontWeight: '500'}}>
                         {item.category_name}
                       </div>
                     </td>
@@ -293,7 +273,7 @@ export default function StockInsightPage() {
                         {getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}
                       </span>
                     </td>
-                    <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                    <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)', textAlign: 'right'}}>
                       {(item.total_quantity_ml / 1000).toFixed(2)}L
                     </td>
                   </tr>
