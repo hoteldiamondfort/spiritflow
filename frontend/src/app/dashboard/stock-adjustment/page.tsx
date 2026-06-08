@@ -547,8 +547,8 @@ export default function StockAdjustmentPage() {
                           </td>
                           <td style={{...styles.td, padding: '8px 4px'}}>
                             <input
-                              type="number"
-                              min="0"
+                              type="text"
+                              inputMode="numeric"
                               value={item.adjusted_bottles}
                               onChange={(e) => handleItemChange(idx, 'bottles', e.target.value)}
                               style={styles.tableInput}
@@ -557,9 +557,8 @@ export default function StockAdjustmentPage() {
                           {!isWarehouse && (
                             <td style={{...styles.td, padding: '8px 4px'}}>
                               <input
-                                type="number"
-                                min="0"
-                                step="0.5"
+                                type="text"
+                                inputMode="decimal"
                                 value={item.adjusted_pegs}
                                 onChange={(e) => handleItemChange(idx, 'pegs', e.target.value)}
                                 style={styles.tableInput}
