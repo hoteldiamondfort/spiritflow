@@ -177,6 +177,17 @@ export default function StockAdjustmentPage() {
         const currentML = stock?.breakdown[validStockPoint] || 0;
         const { cases, bottles, pegs } = convertFromML(product, currentML);
 
+        // Zero out unused columns based on stock point
+        let finalCases = cases;
+        let finalBottles = bottles;
+        let finalPegs = pegs;
+
+        if (validStockPoint === 'warehouse') {
+          finalPegs = 0;  // Warehouse: Cases + Bottles only
+        } else {
+          finalCases = 0;  // Outlets: Bottles + Pegs only
+        }
+
         return {
           product_id: product.product_id,
           product_name: product.product_name,
@@ -185,9 +196,9 @@ export default function StockAdjustmentPage() {
           ml_per_bottle: product.ml_per_bottle,
           bottles_per_case: product.bottles_per_case,
           current_ml: currentML,
-          adjusted_cases: cases,
-          adjusted_bottles: bottles,
-          adjusted_pegs: pegs,
+          adjusted_cases: finalCases,
+          adjusted_bottles: finalBottles,
+          adjusted_pegs: finalPegs,
           adjusted_ml: currentML
         };
       });
