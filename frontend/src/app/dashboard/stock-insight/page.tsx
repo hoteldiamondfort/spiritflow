@@ -66,11 +66,11 @@ export default function StockInsightPage() {
         const data = stockDataResponse.data;
         setStockData(data);
 
-        // Extract unique categories
-        const uniqueCategories = [...new Set(data.map((item: StockItem) => item.category_name))].sort() as string[];
-        setCategories(uniqueCategories);
+        // Extract unique categories and sort
+        const uniqueCats = Array.from(new Set(data.map((item: StockItem) => item.category_name))).sort() as string[];
+        setCategories(uniqueCats);
 
-        // Initial filter
+        // Initial filter with default selections
         applyFilters(data, 'all', 'all', '');
       }
     } catch (error) {
@@ -81,7 +81,7 @@ export default function StockInsightPage() {
   };
 
   const applyFilters = (data: StockItem[], category: string, stockPoint: string, search: string) => {
-    let filtered = data;
+    let filtered = [...data];
 
     // Filter by category
     if (category !== 'all') {
@@ -131,22 +131,9 @@ export default function StockInsightPage() {
     return { bottles, pegs };
   };
 
-  const getStockDisplay = (item: StockItem, stockPoint: string): string => {
-    if (stockPoint === 'all') {
-      const total = item.total_quantity_ml;
-      const litres = (total / 1000).toFixed(2);
-      return `${litres}L`;
-    } else if (stockPoint === 'warehouse') {
-      const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
-      return `${bottles}b`;
-    } else if (stockPoint === 'druvam') {
-      const { bottles, pegs } = convertFromML(item.breakdown.druvam, item.ml_per_bottle);
-      return `${bottles}b+${pegs}p`;
-    } else if (stockPoint === 'spadikam') {
-      const { bottles, pegs } = convertFromML(item.breakdown.spadikam, item.ml_per_bottle);
-      return `${bottles}b+${pegs}p`;
-    }
-    return '0';
+  const getStockDisplay = (ml: number, mlPerBottle: number): string => {
+    const { bottles, pegs } = convertFromML(ml, mlPerBottle);
+    return `${bottles} Bottles | ${pegs} Pegs`;
   };
 
   const handlePrint = () => {
@@ -154,12 +141,10 @@ export default function StockInsightPage() {
   };
 
   const handleExportPDF = () => {
-    // PDF export - placeholder for now
     alert('PDF export feature coming soon!');
   };
 
   const handleEmail = () => {
-    // Email feature - placeholder for now
     alert('Email feature coming soon!');
   };
 
@@ -269,12 +254,11 @@ export default function StockInsightPage() {
             <table style={styles.table}>
               <thead>
                 <tr style={styles.tableHeader}>
-                  <th style={{...styles.th, width: '20%'}}>PRODUCT</th>
-                  <th style={{...styles.th, width: '15%'}}>CATEGORY</th>
-                  <th style={{...styles.th, width: '15%'}}>WAREHOUSE</th>
-                  <th style={{...styles.th, width: '15%'}}>DRUVAM</th>
-                  <th style={{...styles.th, width: '15%'}}>SPADIKAM</th>
-                  <th style={{...styles.th, width: '20%'}}>TOTAL</th>
+                  <th style={{...styles.th, width: '35%'}}>PRODUCT</th>
+                  <th style={{...styles.th, width: '20%'}}>WAREHOUSE</th>
+                  <th style={{...styles.th, width: '20%'}}>DRUVAM</th>
+                  <th style={{...styles.th, width: '20%'}}>SPADIKAM</th>
+                  <th style={{...styles.th, width: '15%'}}>TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,31 +271,26 @@ export default function StockInsightPage() {
                       <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a'}}>
                         {item.product_name}
                       </div>
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', color: '#666'}}>
+                      <div style={{fontSize: 'clamp(9px, 1vw, 10px)', color: '#aaa', marginTop: '2px'}}>
                         {item.category_name}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
-                        {convertFromML(item.breakdown.warehouse, item.ml_per_bottle).bottles}b
-                      </span>
+                      </div>
                     </td>
                     <td style={styles.td}>
                       <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
                         {(() => {
-                          const { bottles, pegs } = convertFromML(item.breakdown.druvam, item.ml_per_bottle);
-                          return `${bottles}b+${pegs}p`;
+                          const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
+                          return `${bottles} Bottles`;
                         })()}
                       </span>
                     </td>
                     <td style={styles.td}>
                       <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
-                        {(() => {
-                          const { bottles, pegs } = convertFromML(item.breakdown.spadikam, item.ml_per_bottle);
-                          return `${bottles}b+${pegs}p`;
-                        })()}
+                        {getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
+                        {getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}
                       </span>
                     </td>
                     <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
@@ -409,6 +388,7 @@ const styles = {
     outline: 'none',
     cursor: 'pointer',
     borderRadius: '3px',
+    color: '#1a1a1a',
   } as React.CSSProperties,
   actionBar: {
     display: 'flex',
