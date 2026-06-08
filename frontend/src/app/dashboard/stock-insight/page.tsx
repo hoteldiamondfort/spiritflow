@@ -39,6 +39,7 @@ export default function StockInsightPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -71,17 +72,14 @@ export default function StockInsightPage() {
       const stockDataResponse = await stockRes.json();
 
       if (productsData.status === 'success' && stockDataResponse.status === 'success') {
-        // Store products
         setProducts(productsData.data);
 
-        // Create stock map for easy lookup
         const stockMap: {[key: string]: StockItem} = {};
         stockDataResponse.data.forEach((item: StockItem) => {
           stockMap[item.product_id] = item;
         });
         setStockData(stockMap);
 
-        // Combine products with stock data
         const combined: CombinedItem[] = productsData.data.map((product: Product) => {
           const stock = stockMap[product.product_id] || {
             product_id: product.product_id,
@@ -93,7 +91,6 @@ export default function StockInsightPage() {
 
         setCombinedData(combined);
 
-        // Extract unique categories
         const catSet = new Set<string>();
         combined.forEach((item: CombinedItem) => {
           if (item.category_name) {
@@ -103,7 +100,6 @@ export default function StockInsightPage() {
         const cats = Array.from(catSet).sort();
         setCategories(cats);
 
-        // Apply initial filters
         applyFilters(combined, 'all', '');
       }
     } catch (error) {
@@ -116,12 +112,10 @@ export default function StockInsightPage() {
   const applyFilters = (data: CombinedItem[], category: string, search: string) => {
     let filtered = [...data];
 
-    // Filter by category
     if (category !== 'all' && category) {
       filtered = filtered.filter(item => item.category_name === category);
     }
 
-    // Filter by search query
     if (search.trim()) {
       const lowerSearch = search.toLowerCase();
       filtered = filtered.filter(item =>
@@ -130,7 +124,6 @@ export default function StockInsightPage() {
       );
     }
 
-    // Sort by category then product alias
     filtered.sort((a, b) => {
       if (a.category_name !== b.category_name) {
         return a.category_name.localeCompare(b.category_name);
@@ -164,7 +157,6 @@ export default function StockInsightPage() {
     return `${bottles} Bottles | ${pegs} Pegs`;
   };
 
-  // Calculate totals
   const calculateTotals = () => {
     let warehouseBottles = 0;
     let druvamBottles = 0;
@@ -199,7 +191,7 @@ export default function StockInsightPage() {
   const totals = calculateTotals();
 
   const handlePrint = () => {
-    window.print();
+    setShowPrintPreview(true);
   };
 
   const handleExportPDF = () => {
@@ -223,237 +215,306 @@ export default function StockInsightPage() {
   }
 
   return (
-    <DashboardLayout user={user}>
-      <div style={styles.container}>
-        <div style={styles.pageHeader} className="no-print">
-          <h1 style={styles.pageTitle}>STOCK INSIGHT</h1>
-        </div>
+    <>
+      <DashboardLayout user={user}>
+        <div style={styles.container}>
+          <div style={styles.pageHeader}>
+            <h1 style={styles.pageTitle}>STOCK INSIGHT</h1>
+          </div>
 
-        {/* Filters Section */}
-        <div style={styles.filterCard} className="no-print">
-          <div style={styles.filterGrid}>
-            <div style={styles.filterGroup}>
-              <label style={styles.label}>CATEGORY</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                style={styles.select}
+          {/* Filters Section */}
+          <div style={styles.filterCard}>
+            <div style={styles.filterGrid}>
+              <div style={styles.filterGroup}>
+                <label style={styles.label}>CATEGORY</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  style={styles.select}
+                >
+                  <option value="all">ALL CATEGORIES</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{...styles.filterGroup, gridColumn: '1 / -1'}}>
+                <label style={styles.label}>SEARCH PRODUCT</label>
+                <input
+                  type="text"
+                  placeholder="Search by name or alias..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  style={styles.input}
+                />
+              </div>
+            </div>
+
+            <div style={styles.actionBar}>
+              <button
+                onClick={fetchData}
+                style={styles.refreshBtn}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
+                title="Refresh data"
               >
-                <option value="all">ALL CATEGORIES</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+                ↻ REFRESH
+              </button>
+              <button
+                onClick={handlePrint}
+                style={styles.actionBtn}
+                title="Print report"
+              >
+                🖨️ PRINT
+              </button>
+              <button
+                onClick={handleExportPDF}
+                style={styles.actionBtn}
+                title="Export to PDF"
+              >
+                📄 PDF
+              </button>
+              <button
+                onClick={handleEmail}
+                style={{...styles.actionBtn, opacity: 0.5}}
+                title="Email report (coming soon)"
+                disabled
+              >
+                📧 EMAIL
+              </button>
             </div>
+          </div>
 
-            <div style={{...styles.filterGroup, gridColumn: '1 / -1'}}>
-              <label style={styles.label}>SEARCH PRODUCT</label>
-              <input
-                type="text"
-                placeholder="Search by name or alias..."
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                style={styles.input}
-              />
+          {/* Report Table */}
+          <div style={styles.reportCard}>
+            <div style={{fontSize: 'clamp(12px, 1.2vw, 13px)', marginBottom: '12px', color: '#8a8a8a'}}>
+              Showing {filteredData.length} product(s)
             </div>
-          </div>
-
-          <div style={styles.actionBar}>
-            <button
-              onClick={fetchData}
-              style={styles.refreshBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
-              title="Refresh data"
-            >
-              ↻ REFRESH
-            </button>
-            <button
-              onClick={handlePrint}
-              style={styles.actionBtn}
-              title="Print report"
-            >
-              🖨️ PRINT
-            </button>
-            <button
-              onClick={handleExportPDF}
-              style={styles.actionBtn}
-              title="Export to PDF"
-            >
-              📄 PDF
-            </button>
-            <button
-              onClick={handleEmail}
-              style={{...styles.actionBtn, opacity: 0.5}}
-              title="Email report (coming soon)"
-              disabled
-            >
-              📧 EMAIL
-            </button>
-          </div>
-        </div>
-
-        {/* Report Table */}
-        <div style={styles.reportCard}>
-          {/* Print Header */}
-          <div style={styles.printHeader} className="print-only">
-            <h1 style={styles.printTitle}>STOCK INSIGHT REPORT</h1>
-            <p style={styles.printDate}>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
-            <p style={styles.printDate}>Time: {new Date().toLocaleTimeString('en-IN')}</p>
-            {selectedCategory !== 'all' && <p style={styles.printFilter}>Category: {selectedCategory}</p>}
-            {searchQuery && <p style={styles.printFilter}>Search: {searchQuery}</p>}
-          </div>
-
-          <div style={{fontSize: 'clamp(12px, 1.2vw, 13px)', marginBottom: '12px', color: '#8a8a8a'}} className="no-print">
-            Showing {filteredData.length} product(s)
-          </div>
-          
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.tableHeader}>
-                  <th style={{...styles.th, width: '30%'}}>PRODUCT</th>
-                  <th style={{...styles.th, width: '20%'}}>WAREHOUSE</th>
-                  <th style={{...styles.th, width: '20%'}}>DRUVAM</th>
-                  <th style={{...styles.th, width: '20%'}}>SPADIKAM</th>
-                  <th style={{...styles.th, width: '15%', textAlign: 'right'}}>TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredData.map((item, idx) => (
-                  <tr key={idx} style={styles.tableRow}>
-                    <td style={styles.td}>
-                      <div style={{fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
-                        {item.product_alias}
-                      </div>
-                      <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a', marginTop: '2px'}}>
-                        {item.product_name}
-                      </div>
-                      <div style={{fontSize: 'clamp(9px, 1vw, 10px)', color: '#aaa', marginTop: '4px', fontWeight: '500'}}>
-                        {item.category_name}
-                      </div>
+            
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.tableHeader}>
+                    <th style={{...styles.th, width: '30%'}}>PRODUCT</th>
+                    <th style={{...styles.th, width: '20%'}}>WAREHOUSE</th>
+                    <th style={{...styles.th, width: '20%'}}>DRUVAM</th>
+                    <th style={{...styles.th, width: '20%'}}>SPADIKAM</th>
+                    <th style={{...styles.th, width: '15%', textAlign: 'right'}}>TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredData.map((item, idx) => (
+                    <tr key={idx} style={styles.tableRow}>
+                      <td style={styles.td}>
+                        <div style={{fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                          {item.product_alias}
+                        </div>
+                        <div style={{fontSize: 'clamp(10px, 1.1vw, 11px)', color: '#8a8a8a', marginTop: '2px'}}>
+                          {item.product_name}
+                        </div>
+                        <div style={{fontSize: 'clamp(9px, 1vw, 10px)', color: '#aaa', marginTop: '4px', fontWeight: '500'}}>
+                          {item.category_name}
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
+                          {(() => {
+                            const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
+                            return `${bottles} Bottles`;
+                          })()}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
+                          {getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
+                          {getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}
+                        </span>
+                      </td>
+                      <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)', textAlign: 'right'}}>
+                        {(item.total_quantity_ml / 1000).toFixed(2)}L
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Totals Row */}
+                  <tr style={{...styles.tableRow, backgroundColor: '#f0f0f0', fontWeight: 'bold', borderTop: '2px solid #1a1a1a'}}>
+                    <td style={{...styles.td, fontWeight: 'bold'}}>TOTAL</td>
+                    <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                      {totals.warehouseBottles} Bottles
                     </td>
-                    <td style={styles.td}>
-                      <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
-                        {(() => {
-                          const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
-                          return `${bottles} Bottles`;
-                        })()}
-                      </span>
+                    <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                      {totals.druvamBottles} Bottles | {totals.druvamPegs} Pegs
                     </td>
-                    <td style={styles.td}>
-                      <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
-                        {getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
-                        {getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}
-                      </span>
+                    <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                      {totals.spadikamBottles} Bottles | {totals.spadikamPegs} Pegs
                     </td>
                     <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)', textAlign: 'right'}}>
-                      {(item.total_quantity_ml / 1000).toFixed(2)}L
+                      {totals.totalLitres}L
                     </td>
                   </tr>
-                ))}
-                {/* Totals Row */}
-                <tr style={{...styles.tableRow, backgroundColor: '#f0f0f0', fontWeight: 'bold', borderTop: '2px solid #1a1a1a'}}>
-                  <td style={{...styles.td, fontWeight: 'bold'}}>TOTAL</td>
-                  <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
-                    {totals.warehouseBottles} Bottles
-                  </td>
-                  <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
-                    {totals.druvamBottles} Bottles | {totals.druvamPegs} Pegs
-                  </td>
-                  <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
-                    {totals.spadikamBottles} Bottles | {totals.spadikamPegs} Pegs
-                  </td>
-                  <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)', textAlign: 'right'}}>
-                    {totals.totalLitres}L
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {filteredData.length === 0 && (
-            <div style={{textAlign: 'center', padding: '40px', color: '#8a8a8a'}}>
-              No products found matching your filters.
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {filteredData.length === 0 && (
+              <div style={{textAlign: 'center', padding: '40px', color: '#8a8a8a'}}>
+                No products found matching your filters.
+              </div>
+            )}
+          </div>
         </div>
+      </DashboardLayout>
+
+      {/* Print Preview Modal */}
+      {showPrintPreview && (
+        <PrintPreviewModal
+          filteredData={filteredData}
+          totals={totals}
+          selectedCategory={selectedCategory}
+          searchQuery={searchQuery}
+          convertFromML={convertFromML}
+          getStockDisplay={getStockDisplay}
+          onClose={() => setShowPrintPreview(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function PrintPreviewModal({
+  filteredData,
+  totals,
+  selectedCategory,
+  searchQuery,
+  convertFromML,
+  getStockDisplay,
+  onClose
+}: any) {
+  useEffect(() => {
+    // Trigger print dialog when modal opens
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  }, []);
+
+  return (
+    <div style={printStyles.printContainer}>
+      {/* Close button - only visible on screen, not on print */}
+      <div style={printStyles.closeButtonContainer}>
+        <button onClick={onClose} style={printStyles.closeButton}>✕ CLOSE</button>
+      </div>
+
+      {/* Print Content */}
+      <div style={printStyles.reportWrapper}>
+        <div style={printStyles.header}>
+          <h1 style={printStyles.title}>STOCK INSIGHT REPORT</h1>
+          <p style={printStyles.meta}>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+          <p style={printStyles.meta}>Time: {new Date().toLocaleTimeString('en-IN')}</p>
+          {selectedCategory !== 'all' && <p style={printStyles.meta}>Category: {selectedCategory}</p>}
+          {searchQuery && <p style={printStyles.meta}>Search: {searchQuery}</p>}
+        </div>
+
+        <table style={printStyles.table}>
+          <thead>
+            <tr style={printStyles.headerRow}>
+              <th style={printStyles.th}>PRODUCT</th>
+              <th style={printStyles.th}>WAREHOUSE</th>
+              <th style={printStyles.th}>DRUVAM</th>
+              <th style={printStyles.th}>SPADIKAM</th>
+              <th style={{...printStyles.th, textAlign: 'right'}}>TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.map((item: any, idx: number) => (
+              <tr key={idx} style={printStyles.row}>
+                <td style={printStyles.td}>
+                  <div style={{fontWeight: 'bold'}}>{item.product_alias}</div>
+                  <div style={{fontSize: '9pt', color: '#666', marginTop: '2px'}}>{item.product_name}</div>
+                  <div style={{fontSize: '8pt', color: '#999', marginTop: '2px'}}>{item.category_name}</div>
+                </td>
+                <td style={printStyles.td}>
+                  {(() => {
+                    const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
+                    return `${bottles} Bottles`;
+                  })()}
+                </td>
+                <td style={printStyles.td}>{getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}</td>
+                <td style={printStyles.td}>{getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}</td>
+                <td style={{...printStyles.td, textAlign: 'right'}}>{(item.total_quantity_ml / 1000).toFixed(2)}L</td>
+              </tr>
+            ))}
+            {/* Totals Row */}
+            <tr style={printStyles.totalRow}>
+              <td style={printStyles.td}>TOTAL</td>
+              <td style={printStyles.td}>{totals.warehouseBottles} Bottles</td>
+              <td style={printStyles.td}>{totals.druvamBottles} Bottles | {totals.druvamPegs} Pegs</td>
+              <td style={printStyles.td}>{totals.spadikamBottles} Bottles | {totals.spadikamPegs} Pegs</td>
+              <td style={{...printStyles.td, textAlign: 'right'}}>{totals.totalLitres}L</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <style>{`
         @media print {
-          * {
+          body, html {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-          }
-
-          body {
             background: white;
-            color: #000;
-            font-family: "Courier New", Courier, monospace;
-            line-height: 1.4;
           }
-
+          
           .no-print {
             display: none !important;
           }
-
-          .print-only {
-            display: block !important;
-          }
-
+          
           @page {
             size: A4;
-            margin: 0.5in;
+            margin: 0.4in;
           }
-
+          
+          .print-container {
+            display: block !important;
+            margin: 0;
+            padding: 0;
+          }
+          
           table {
             page-break-inside: avoid;
             width: 100%;
-            border-collapse: collapse;
           }
-
+          
           thead {
             display: table-header-group;
           }
-
-          tbody {
-            display: table-row-group;
-          }
-
+          
           tr {
             page-break-inside: avoid;
           }
-
-          th, td {
-            border: 1px solid #000;
-            padding: 6px;
-            text-align: left;
-            font-size: 10pt;
-          }
-
-          thead th {
-            background: #f0f0f0;
-            font-weight: bold;
-          }
-
-          .reportCard {
-            page-break-after: auto;
-          }
         }
-
+        
         @media screen {
-          .print-only {
-            display: none;
+          .no-print {
+            display: block;
+          }
+          
+          .print-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f5f5;
+            z-index: 10000;
+            overflow: auto;
+            padding: 20px;
           }
         }
       `}</style>
-    </DashboardLayout>
+    </div>
   );
 }
 
@@ -472,28 +533,6 @@ const styles = {
     fontWeight: 'bold',
     letterSpacing: '1px',
     margin: 0,
-  } as React.CSSProperties,
-  printHeader: {
-    marginBottom: '20px',
-    textAlign: 'center',
-    paddingBottom: '20px',
-    borderBottom: '2px solid #000',
-  } as React.CSSProperties,
-  printTitle: {
-    fontSize: '18pt',
-    fontWeight: 'bold',
-    margin: '0 0 10px 0',
-  } as React.CSSProperties,
-  printDate: {
-    fontSize: '10pt',
-    margin: '4px 0',
-    color: '#333',
-  } as React.CSSProperties,
-  printFilter: {
-    fontSize: '10pt',
-    margin: '4px 0',
-    color: '#555',
-    fontStyle: 'italic',
   } as React.CSSProperties,
   filterCard: {
     backgroundColor: '#ffffff',
@@ -610,5 +649,89 @@ const styles = {
   td: {
     padding: 'clamp(10px, 1.6vw, 14px)',
     color: '#595959',
+  } as React.CSSProperties,
+};
+
+const printStyles = {
+  printContainer: {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#f5f5f5',
+    zIndex: 10000,
+    overflowY: 'auto' as const,
+    padding: '20px',
+  },
+  closeButtonContainer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: '20px',
+  },
+  closeButton: {
+    padding: '10px 16px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    backgroundColor: '#e0e0e0',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: '"Courier New", Courier, monospace',
+    borderRadius: '3px',
+  } as React.CSSProperties,
+  reportWrapper: {
+    backgroundColor: '#ffffff',
+    padding: '40px',
+    marginBottom: '40px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    minHeight: '100vh',
+  } as React.CSSProperties,
+  header: {
+    textAlign: 'center' as const,
+    marginBottom: '30px',
+    paddingBottom: '20px',
+    borderBottom: '2px solid #000',
+  } as React.CSSProperties,
+  title: {
+    fontSize: '18pt',
+    fontWeight: 'bold',
+    margin: '0 0 10px 0',
+    fontFamily: '"Courier New", Courier, monospace',
+  } as React.CSSProperties,
+  meta: {
+    fontSize: '10pt',
+    margin: '4px 0',
+    color: '#333',
+    fontFamily: '"Courier New", Courier, monospace',
+  } as React.CSSProperties,
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse' as const,
+    fontSize: '10pt',
+    fontFamily: '"Courier New", Courier, monospace',
+  } as React.CSSProperties,
+  headerRow: {
+    backgroundColor: '#f0f0f0',
+    borderBottom: '2px solid #000',
+  } as React.CSSProperties,
+  th: {
+    padding: '8px',
+    textAlign: 'left' as const,
+    fontWeight: 'bold',
+    borderBottom: '1px solid #000',
+  } as React.CSSProperties,
+  row: {
+    borderBottom: '1px solid #ccc',
+  } as React.CSSProperties,
+  totalRow: {
+    backgroundColor: '#f0f0f0',
+    fontWeight: 'bold',
+    borderTop: '2px solid #000',
+    borderBottom: '1px solid #000',
+  } as React.CSSProperties,
+  td: {
+    padding: '8px',
+    borderBottom: '1px solid #ccc',
   } as React.CSSProperties,
 };
