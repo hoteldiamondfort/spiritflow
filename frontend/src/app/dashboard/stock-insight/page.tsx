@@ -164,6 +164,40 @@ export default function StockInsightPage() {
     return `${bottles} Bottles | ${pegs} Pegs`;
   };
 
+  // Calculate totals
+  const calculateTotals = () => {
+    let warehouseBottles = 0;
+    let druvamBottles = 0;
+    let druvamPegs = 0;
+    let spadikamBottles = 0;
+    let spadikamPegs = 0;
+    let totalLitres = 0;
+
+    filteredData.forEach((item) => {
+      const warehouse = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
+      const druvam = convertFromML(item.breakdown.druvam, item.ml_per_bottle);
+      const spadikam = convertFromML(item.breakdown.spadikam, item.ml_per_bottle);
+
+      warehouseBottles += warehouse.bottles;
+      druvamBottles += druvam.bottles;
+      druvamPegs += druvam.pegs;
+      spadikamBottles += spadikam.bottles;
+      spadikamPegs += spadikam.pegs;
+      totalLitres += item.total_quantity_ml / 1000;
+    });
+
+    return {
+      warehouseBottles,
+      druvamBottles,
+      druvamPegs,
+      spadikamBottles,
+      spadikamPegs,
+      totalLitres: totalLitres.toFixed(2)
+    };
+  };
+
+  const totals = calculateTotals();
+
   const handlePrint = () => {
     window.print();
   };
@@ -191,12 +225,12 @@ export default function StockInsightPage() {
   return (
     <DashboardLayout user={user}>
       <div style={styles.container}>
-        <div style={styles.pageHeader}>
+        <div style={styles.pageHeader} className="no-print">
           <h1 style={styles.pageTitle}>STOCK INSIGHT</h1>
         </div>
 
         {/* Filters Section */}
-        <div style={styles.filterCard}>
+        <div style={styles.filterCard} className="no-print">
           <div style={styles.filterGrid}>
             <div style={styles.filterGroup}>
               <label style={styles.label}>CATEGORY</label>
@@ -261,7 +295,16 @@ export default function StockInsightPage() {
 
         {/* Report Table */}
         <div style={styles.reportCard}>
-          <div style={{fontSize: 'clamp(12px, 1.2vw, 13px)', marginBottom: '12px', color: '#8a8a8a'}}>
+          {/* Print Header */}
+          <div style={styles.printHeader} className="print-only">
+            <h1 style={styles.printTitle}>STOCK INSIGHT REPORT</h1>
+            <p style={styles.printDate}>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+            <p style={styles.printDate}>Time: {new Date().toLocaleTimeString('en-IN')}</p>
+            {selectedCategory !== 'all' && <p style={styles.printFilter}>Category: {selectedCategory}</p>}
+            {searchQuery && <p style={styles.printFilter}>Search: {searchQuery}</p>}
+          </div>
+
+          <div style={{fontSize: 'clamp(12px, 1.2vw, 13px)', marginBottom: '12px', color: '#8a8a8a'}} className="no-print">
             Showing {filteredData.length} product(s)
           </div>
           
@@ -313,6 +356,22 @@ export default function StockInsightPage() {
                     </td>
                   </tr>
                 ))}
+                {/* Totals Row */}
+                <tr style={{...styles.tableRow, backgroundColor: '#f0f0f0', fontWeight: 'bold', borderTop: '2px solid #1a1a1a'}}>
+                  <td style={{...styles.td, fontWeight: 'bold'}}>TOTAL</td>
+                  <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                    {totals.warehouseBottles} Bottles
+                  </td>
+                  <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                    {totals.druvamBottles} Bottles | {totals.druvamPegs} Pegs
+                  </td>
+                  <td style={{...styles.td, fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)'}}>
+                    {totals.spadikamBottles} Bottles | {totals.spadikamPegs} Pegs
+                  </td>
+                  <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold', fontSize: 'clamp(11px, 1.2vw, 12px)', textAlign: 'right'}}>
+                    {totals.totalLitres}L
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -327,14 +386,70 @@ export default function StockInsightPage() {
 
       <style>{`
         @media print {
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
           body {
             background: white;
+            color: #000;
+            font-family: "Courier New", Courier, monospace;
+            line-height: 1.4;
           }
+
           .no-print {
-            display: none;
+            display: none !important;
           }
+
+          .print-only {
+            display: block !important;
+          }
+
+          @page {
+            size: A4;
+            margin: 0.5in;
+          }
+
           table {
             page-break-inside: avoid;
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          thead {
+            display: table-header-group;
+          }
+
+          tbody {
+            display: table-row-group;
+          }
+
+          tr {
+            page-break-inside: avoid;
+          }
+
+          th, td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: left;
+            font-size: 10pt;
+          }
+
+          thead th {
+            background: #f0f0f0;
+            font-weight: bold;
+          }
+
+          .reportCard {
+            page-break-after: auto;
+          }
+        }
+
+        @media screen {
+          .print-only {
+            display: none;
           }
         }
       `}</style>
@@ -357,6 +472,28 @@ const styles = {
     fontWeight: 'bold',
     letterSpacing: '1px',
     margin: 0,
+  } as React.CSSProperties,
+  printHeader: {
+    marginBottom: '20px',
+    textAlign: 'center',
+    paddingBottom: '20px',
+    borderBottom: '2px solid #000',
+  } as React.CSSProperties,
+  printTitle: {
+    fontSize: '18pt',
+    fontWeight: 'bold',
+    margin: '0 0 10px 0',
+  } as React.CSSProperties,
+  printDate: {
+    fontSize: '10pt',
+    margin: '4px 0',
+    color: '#333',
+  } as React.CSSProperties,
+  printFilter: {
+    fontSize: '10pt',
+    margin: '4px 0',
+    color: '#555',
+    fontStyle: 'italic',
   } as React.CSSProperties,
   filterCard: {
     backgroundColor: '#ffffff',
