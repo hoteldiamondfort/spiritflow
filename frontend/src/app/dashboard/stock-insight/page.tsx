@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 
+// Import jsPDF and autoTable at the top level
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
 const PEG_SIZE_ML = 60;
 
 interface Product {
@@ -195,14 +199,10 @@ export default function StockInsightPage() {
 
   const totals = calculateTotals();
 
-  const generatePDF = async () => {
+  const generatePDF = () => {
     try {
       setIsDownloading(true);
       console.log('🔄 Starting PDF generation...');
-
-      // Dynamically import jsPDF with autoTable
-      const jsPDF = (await import('jspdf')).jsPDF;
-      await import('jspdf-autotable');
 
       // Create PDF document
       const doc = new jsPDF({
@@ -217,7 +217,7 @@ export default function StockInsightPage() {
       let yPosition = margin;
 
       // ===== HEADER SECTION =====
-      doc.setFont('Arial', 'bold');
+      doc.setFont('Helvetica', 'bold');
       doc.setFontSize(16);
       doc.text('HOTEL DIAMOND FORT', pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 8;
@@ -232,7 +232,7 @@ export default function StockInsightPage() {
       yPosition += 6;
 
       // ===== METADATA SECTION =====
-      doc.setFont('Arial', 'normal');
+      doc.setFont('Helvetica', 'normal');
       doc.setFontSize(10);
       const reportDate = new Date().toLocaleDateString('en-IN');
       const reportTime = new Date().toLocaleTimeString('en-IN');
@@ -270,79 +270,75 @@ export default function StockInsightPage() {
       console.log('📊 Table data prepared, rows:', tableData.length);
 
       // Generate table using autoTable
-      (doc as any).autoTable({
-        startY: yPosition,
-        head: [['PRODUCT', 'WAREHOUSE', 'DRUVAM', 'SPADIKAM', 'TOTAL']],
-        body: tableData,
-        margin: { left: margin, right: margin, top: 10, bottom: 20 },
-        headStyles: {
-          fillColor: [240, 240, 240],
-          textColor: [0, 0, 0],
-          fontStyle: 'bold',
-          fontSize: 9,
-          cellPadding: 4,
-          halign: 'center',
-          valign: 'middle',
-          lineColor: [0, 0, 0],
-          lineWidth: 0.5
-        },
-        bodyStyles: {
-          textColor: [0, 0, 0],
-          fontSize: 8,
-          cellPadding: 3,
-          lineColor: [200, 200, 200],
-          lineWidth: 0.3,
-          halign: 'center',
-          valign: 'middle'
-        },
-        alternateRowStyles: {
-          fillColor: [255, 255, 255]
-        },
-        columnStyles: {
-          0: { halign: 'left', cellWidth: 55 },
-          1: { halign: 'center', cellWidth: 30 },
-          2: { halign: 'center', cellWidth: 35 },
-          3: { halign: 'center', cellWidth: 35 },
-          4: { halign: 'right', cellWidth: 25 }
-        },
-        willDrawPage: (data: any) => {
-          // Page footer
-          const pageCount = (doc as any).internal.getNumberOfPages();
-          const currentPage = data.pageNumber;
-          const text = `Page ${currentPage} of ${pageCount}`;
-          doc.setFontSize(8);
-          doc.setTextColor(100, 100, 100);
-          doc.text(text, pageWidth - margin - 15, pageHeight - 10);
-        }
-      });
+      const docAsAny = doc as any;
+      if (docAsAny.autoTable) {
+        docAsAny.autoTable({
+          startY: yPosition,
+          head: [['PRODUCT', 'WAREHOUSE', 'DRUVAM', 'SPADIKAM', 'TOTAL']],
+          body: tableData,
+          margin: { left: margin, right: margin, top: 10, bottom: 20 },
+          headStyles: {
+            fillColor: [240, 240, 240],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            fontSize: 9,
+            cellPadding: 4,
+            halign: 'center',
+            valign: 'middle',
+            lineColor: [0, 0, 0],
+            lineWidth: 0.5
+          },
+          bodyStyles: {
+            textColor: [0, 0, 0],
+            fontSize: 8,
+            cellPadding: 3,
+            lineColor: [200, 200, 200],
+            lineWidth: 0.3,
+            halign: 'center',
+            valign: 'middle'
+          },
+          alternateRowStyles: {
+            fillColor: [255, 255, 255]
+          },
+          columnStyles: {
+            0: { halign: 'left', cellWidth: 55 },
+            1: { halign: 'center', cellWidth: 30 },
+            2: { halign: 'center', cellWidth: 35 },
+            3: { halign: 'center', cellWidth: 35 },
+            4: { halign: 'right', cellWidth: 25 }
+          }
+        });
 
-      console.log('✅ Table generated successfully');
+        console.log('✅ Table generated successfully');
 
-      // ===== FOOTER =====
-      const footerY = pageHeight - 18;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, footerY, pageWidth - margin, footerY);
+        // ===== FOOTER =====
+        const footerY = pageHeight - 18;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, footerY, pageWidth - margin, footerY);
 
-      doc.setFont('Arial', 'italic');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(
-        'This is a computer generated report based on the data available within the system.',
-        pageWidth / 2,
-        footerY + 5,
-        { align: 'center' }
-      );
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(
+          'This is a computer generated report based on the data available within the system.',
+          pageWidth / 2,
+          footerY + 5,
+          { align: 'center' }
+        );
 
-      // ===== DOWNLOAD PDF =====
-      const fileName = `Stock_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
+        // ===== DOWNLOAD PDF =====
+        const fileName = `Stock_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
 
-      setIsDownloading(false);
-      console.log('✅ PDF downloaded successfully:', fileName);
+        setIsDownloading(false);
+        console.log('✅ PDF downloaded successfully:', fileName);
+      } else {
+        throw new Error('autoTable plugin not loaded. Please refresh the page and try again.');
+      }
     } catch (error) {
       console.error('❌ Error generating PDF:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Error generating PDF: ${errorMessage}\n\nCheck console (F12) for details.`);
+      alert(`Error generating PDF: ${errorMessage}\n\nPlease refresh the page and try again.`);
       setIsDownloading(false);
     }
   };
