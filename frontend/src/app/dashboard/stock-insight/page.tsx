@@ -212,12 +212,12 @@ export default function StockInsightPage() {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 15;
-      const tableWidth = pageWidth - margin * 2;
       let yPosition = margin;
 
       // ===== HEADER SECTION =====
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
       doc.text('HOTEL DIAMOND FORT', pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 8;
 
@@ -233,6 +233,7 @@ export default function StockInsightPage() {
       // ===== METADATA SECTION =====
       doc.setFont('Helvetica', 'normal');
       doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
       const reportDate = new Date().toLocaleDateString('en-IN');
       const reportTime = new Date().toLocaleTimeString('en-IN');
 
@@ -248,26 +249,18 @@ export default function StockInsightPage() {
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 6;
 
-      // ===== MANUAL TABLE =====
+      // ===== TABLE =====
       const colWidths = {
-        product: 55,
-        warehouse: 28,
-        druvam: 33,
-        spadikam: 33,
-        total: 22
+        product: 50,
+        warehouse: 25,
+        druvam: 35,
+        spadikam: 35,
+        total: 20
       };
 
-      const rowHeight = 8;
-      const headerBg = [240, 240, 240];
-      const bodyBg = [255, 255, 255];
+      const rowHeight = 10;
 
-      // Header Row
-      doc.setFillColor(headerBg[0], headerBg[1], headerBg[2]);
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setDrawColor(0, 0, 0);
-
-      const headers = ['PRODUCT', 'WAREHOUSE', 'DRUVAM', 'SPADIKAM', 'TOTAL'];
+      // Column positions
       const colPositions = [
         margin,
         margin + colWidths.product,
@@ -276,21 +269,26 @@ export default function StockInsightPage() {
         margin + colWidths.product + colWidths.warehouse + colWidths.druvam + colWidths.spadikam
       ];
 
-      // Draw header row
-      for (let i = 0; i < headers.length; i++) {
-        doc.rect(colPositions[i], yPosition - rowHeight + 2, 
-          i < headers.length - 1 ? 
-            colPositions[i + 1] - colPositions[i] : 
-            colWidths.total, 
-          rowHeight, 'F');
-        doc.text(headers[i], colPositions[i] + 2, yPosition - 2, { align: 'left' });
-      }
+      // ===== TABLE HEADER =====
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255); // WHITE TEXT
+      doc.setFillColor(0, 0, 0); // BLACK BACKGROUND
+      doc.rect(margin, yPosition - rowHeight + 1, pageWidth - margin * 2, rowHeight, 'F');
+
+      // Header text
+      doc.text('PRODUCT', colPositions[0] + 2, yPosition - 2);
+      doc.text('WAREHOUSE', colPositions[1] + 1, yPosition - 2);
+      doc.text('DRUVAM', colPositions[2] + 3, yPosition - 2);
+      doc.text('SPADIKAM', colPositions[3] + 3, yPosition - 2);
+      doc.text('TOTAL', colPositions[4] + 2, yPosition - 2);
 
       yPosition += rowHeight;
 
-      // Body Rows
+      // ===== TABLE BODY =====
       doc.setFont('Helvetica', 'normal');
       doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0); // BLACK TEXT
 
       filteredData.forEach((item, idx) => {
         // Check if we need a new page
@@ -299,74 +297,56 @@ export default function StockInsightPage() {
           yPosition = margin;
         }
 
-        // Alternate row colors
-        if (idx % 2 === 0) {
-          doc.setFillColor(bodyBg[0], bodyBg[1], bodyBg[2]);
-        } else {
-          doc.setFillColor(245, 245, 245);
+        // Alternate row colors (no fill = white, light gray for alternates)
+        if (idx % 2 === 1) {
+          doc.setFillColor(240, 240, 240);
+          doc.rect(margin, yPosition - rowHeight + 1, pageWidth - margin * 2, rowHeight, 'F');
         }
 
-        // Product column (multiline)
-        const productText = `${item.product_alias} | ${item.product_name}`;
-        const categoryText = item.category_name;
-        
-        doc.rect(colPositions[0], yPosition - rowHeight + 2, colWidths.product, rowHeight, 'F');
+        // Draw borders
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(margin, yPosition - rowHeight + 1, pageWidth - margin * 2, rowHeight);
+
+        // Product
+        doc.setTextColor(0, 0, 0);
+        const productText = `${item.product_alias}`;
+        const nameText = item.product_name;
         doc.setFontSize(7);
-        doc.text(productText, colPositions[0] + 1, yPosition - 4);
-        doc.text(categoryText, colPositions[0] + 1, yPosition - 1);
+        doc.text(productText, colPositions[0] + 1, yPosition - 5);
+        doc.text(nameText, colPositions[0] + 1, yPosition - 1);
 
         // Warehouse
         doc.setFontSize(8);
-        doc.rect(colPositions[1], yPosition - rowHeight + 2, colWidths.warehouse, rowHeight, 'F');
         const warehouseText = getWarehouseDisplay(item.breakdown.warehouse, item.ml_per_bottle);
-        doc.text(warehouseText, colPositions[1] + colWidths.warehouse / 2, yPosition - 2, { align: 'center' });
+        doc.text(warehouseText, colPositions[1] + 1, yPosition - 2);
 
         // Druvam
-        doc.rect(colPositions[2], yPosition - rowHeight + 2, colWidths.druvam, rowHeight, 'F');
         const druvamText = getStockDisplay(item.breakdown.druvam, item.ml_per_bottle);
-        doc.text(druvamText, colPositions[2] + colWidths.druvam / 2, yPosition - 2, { align: 'center' });
+        doc.text(druvamText, colPositions[2] + 1, yPosition - 2);
 
         // Spadikam
-        doc.rect(colPositions[3], yPosition - rowHeight + 2, colWidths.spadikam, rowHeight, 'F');
         const spadikamText = getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle);
-        doc.text(spadikamText, colPositions[3] + colWidths.spadikam / 2, yPosition - 2, { align: 'center' });
+        doc.text(spadikamText, colPositions[3] + 1, yPosition - 2);
 
         // Total
-        doc.rect(colPositions[4], yPosition - rowHeight + 2, colWidths.total, rowHeight, 'F');
         const totalText = `${(item.total_quantity_ml / 1000).toFixed(2)}L`;
-        doc.text(totalText, colPositions[4] + colWidths.total - 2, yPosition - 2, { align: 'right' });
+        doc.text(totalText, colPositions[4] + 1, yPosition - 2);
 
         yPosition += rowHeight;
       });
 
-      // Totals Row
+      // ===== TOTALS ROW =====
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(8);
-      doc.setFillColor(240, 240, 240);
+      doc.setTextColor(255, 255, 255);
+      doc.setFillColor(0, 0, 0);
+      doc.rect(margin, yPosition - rowHeight + 1, pageWidth - margin * 2, rowHeight, 'F');
 
-      const totalsRow = [
-        'TOTAL',
-        `${totals.warehouseBottles} Bottles`,
-        `${totals.druvamBottles} B | ${totals.druvamPegs} P`,
-        `${totals.spadikamBottles} B | ${totals.spadikamPegs} P`,
-        `${totals.totalLitres}L`
-      ];
-
-      for (let i = 0; i < totalsRow.length; i++) {
-        const colWidth = i < totalsRow.length - 1 ? 
-          colPositions[i + 1] - colPositions[i] : 
-          colWidths.total;
-        
-        doc.rect(colPositions[i], yPosition - rowHeight + 2, colWidth, rowHeight, 'F');
-        
-        if (i === totalsRow.length - 1) {
-          doc.text(totalsRow[i], colPositions[i] + colWidth - 2, yPosition - 2, { align: 'right' });
-        } else if (i === 0) {
-          doc.text(totalsRow[i], colPositions[i] + 2, yPosition - 2, { align: 'left' });
-        } else {
-          doc.text(totalsRow[i], colPositions[i] + (colWidth / 2), yPosition - 2, { align: 'center' });
-        }
-      }
+      doc.text('TOTAL', colPositions[0] + 2, yPosition - 2);
+      doc.text(`${totals.warehouseBottles}`, colPositions[1] + 1, yPosition - 2);
+      doc.text(`${totals.druvamBottles} B | ${totals.druvamPegs} P`, colPositions[2] + 1, yPosition - 2);
+      doc.text(`${totals.spadikamBottles} B | ${totals.spadikamPegs} P`, colPositions[3] + 1, yPosition - 2);
+      doc.text(`${totals.totalLitres}L`, colPositions[4] + 1, yPosition - 2);
 
       yPosition += rowHeight;
 
