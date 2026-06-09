@@ -260,13 +260,14 @@ export default function StockInsightPage() {
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 3;
 
-      // ===== TABLE CONFIG =====
+      // ===== TABLE CONFIG (Product: 1/3, rest: 1/6 each) =====
+      const tableWidth = pageWidth - margin * 2;
       const colWidth = {
-        product: 50,
-        warehouse: 23,
-        druvam: 27,
-        spadikam: 27,
-        total: 18
+        product: (tableWidth / 3),         // 1/3 of width (wide for wrapping text)
+        warehouse: (tableWidth / 6),       // 1/6 of width
+        druvam: (tableWidth / 6),          // 1/6 of width
+        spadikam: (tableWidth / 6),        // 1/6 of width
+        total: (tableWidth / 6)            // 1/6 of width (compact for numbers)
       };
 
       const col = {
@@ -277,9 +278,7 @@ export default function StockInsightPage() {
         total: margin + colWidth.product + colWidth.warehouse + colWidth.druvam + colWidth.spadikam
       };
 
-      const tableWidth = pageWidth - margin * 2;
       const headerHeight = 5;
-      let contentStartY = yPosition;
 
       // ===== HEADER ROW =====
       doc.setFont('Helvetica', 'bold');
@@ -288,7 +287,7 @@ export default function StockInsightPage() {
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, tableWidth, headerHeight, 'F');
 
-      // Draw vertical lines between columns
+      // Draw vertical lines
       doc.setDrawColor(255, 255, 255);
       doc.setLineWidth(0.2);
       doc.line(col.warehouse, yPosition, col.warehouse, yPosition + headerHeight);
@@ -311,15 +310,17 @@ export default function StockInsightPage() {
       doc.setTextColor(0, 0, 0);
 
       filteredData.forEach((item, idx) => {
-        // Calculate product text height
-        const productText = `${item.product_alias}\n${item.product_name}`;
-        const splitProduct = doc.splitTextToSize(productText, colWidth.product - 2);
-        const productHeight = splitProduct.length * 2.5 + 2;
+        // Calculate product text height (alias + name + category)
+        const aliasLines = doc.splitTextToSize(item.product_alias, colWidth.product - 2);
+        const nameLines = doc.splitTextToSize(item.product_name, colWidth.product - 2);
+        const categoryLines = doc.splitTextToSize(item.category_name, colWidth.product - 2);
+        
+        const productHeight = (aliasLines.length + nameLines.length + categoryLines.length) * 2.2 + 2;
         const rowHeight = Math.max(productHeight, 6);
 
         // Check page break
         if (yPosition + rowHeight > pageHeight - 14) {
-          // Footer on current page
+          // Footer
           doc.setDrawColor(33, 150, 243);
           doc.setLineWidth(0.3);
           doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
@@ -381,16 +382,34 @@ export default function StockInsightPage() {
         doc.line(col.spadikam, yPosition, col.spadikam, yPosition + rowHeight);
         doc.line(col.total, yPosition, col.total, yPosition + rowHeight);
 
-        // Product (wraps, left-aligned)
+        // Product column: alias (bold) + name (normal) + category (italic)
+        let productY = yPosition + 1.5;
+        
+        // Alias (bold)
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(6.5);
-        let productY = yPosition + 1.5;
-        doc.text(`${item.product_alias}`, col.product + 1, productY);
-        
+        aliasLines.forEach((line: string) => {
+          doc.text(line, col.product + 0.5, productY);
+          productY += 2.2;
+        });
+
+        // Name (normal)
         doc.setFont('Helvetica', 'normal');
         doc.setFontSize(6);
-        productY += 2.3;
-        doc.text(`${item.product_name}`, col.product + 1, productY);
+        nameLines.forEach((line: string) => {
+          doc.text(line, col.product + 0.5, productY);
+          productY += 2.2;
+        });
+
+        // Category (italic)
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(6);
+        doc.setTextColor(80, 80, 80);
+        categoryLines.forEach((line: string) => {
+          doc.text(line, col.product + 0.5, productY);
+          productY += 2.2;
+        });
+        doc.setTextColor(0, 0, 0);
 
         // Warehouse (center)
         doc.setFont('Helvetica', 'normal');
@@ -406,7 +425,7 @@ export default function StockInsightPage() {
         const spadikamText = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
         doc.text(spadikamText, col.spadikam + colWidth.spadikam / 2, yPosition + rowHeight / 2 + 0.5, { align: 'center' });
 
-        // Total (right)
+        // Total (right) - compact format
         const totalText = `${(item.total_quantity_ml / 1000).toFixed(2)}L`;
         doc.text(totalText, col.total + colWidth.total - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
 
