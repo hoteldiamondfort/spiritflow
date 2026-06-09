@@ -436,7 +436,7 @@ export default function StockInsightPage() {
       });
 
       // CATEGORY GRAND TOTALS ROW (matching product table style - white text on blue background)
-      const categoryTotalsHeight = 7;
+      const categoryTotalsHeight = 11;
       // Calculate grand totals by summing all category bottles/pegs
       let categoryGrandTotalWarehouseBottles = 0;
       let categoryGrandTotalDruvamBottles = 0;
@@ -472,39 +472,45 @@ export default function StockInsightPage() {
       doc.setTextColor(0, 0, 0);
       doc.text('TOTAL', categoryCol.category + 1, yPosition + categoryTotalsHeight / 2 + 1.2, { align: 'left' });
 
-      // Warehouse total (BOLD, 7pt, black, STRICTLY right-aligned)
+      // Warehouse total (BOLD, 8pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       const categoryTotalWarehouseWord = categoryGrandTotalWarehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const categoryTotalWarehouseFullDisplay = categoryGrandTotalWarehouseBottles + ' ' + categoryTotalWarehouseWord;
       doc.text(categoryTotalWarehouseFullDisplay, categoryCol.warehouse + categoryColWidth.warehouse - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
 
-      // Druvam total (BOLD, 7pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
+      // Druvam total (BOLD, 8pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       const categoryTotalDruvamWord = categoryGrandTotalDruvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const categoryTotalDruvamBottleFullDisplay = categoryGrandTotalDruvamBottles + ' ' + categoryTotalDruvamWord;
       doc.text(categoryTotalDruvamBottleFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, yPosition + categoryTotalsHeight / 2 - 1.5, { align: 'right' });
 
       const categoryTotalDruvamPegsFullDisplay = categoryGrandTotalDruvamPegs.toFixed(2) + ' PEGS';
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
       doc.text(categoryTotalDruvamPegsFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, yPosition + categoryTotalsHeight / 2 + 1.5, { align: 'right' });
 
-      // Spadikam total (BOLD, 7pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
+      // Spadikam total (BOLD, 8pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       const categoryTotalSpadikamWord = categoryGrandTotalSpadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const categoryTotalSpadikamBottleFullDisplay = categoryGrandTotalSpadikamBottles + ' ' + categoryTotalSpadikamWord;
       doc.text(categoryTotalSpadikamBottleFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, yPosition + categoryTotalsHeight / 2 - 1.5, { align: 'right' });
 
       const categoryTotalSpadikamPegsFullDisplay = categoryGrandTotalSpadikamPegs.toFixed(2) + ' PEGS';
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
       doc.text(categoryTotalSpadikamPegsFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, yPosition + categoryTotalsHeight / 2 + 1.5, { align: 'right' });
 
-      // Total (BOLD, 7pt, black, STRICTLY right-aligned)
+      // Total (BOLD, 8pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       // Use totals.totalLitres to match product table grand total exactly (eliminates rounding discrepancies)
       doc.text(totals.totalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
@@ -752,7 +758,7 @@ export default function StockInsightPage() {
       });
 
       // ===== TOTALS ROW (with more height for spacing) =====
-      const totalsHeight = 9;
+      const totalsHeight = 11;
       doc.setFont('Courier', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(255, 255, 255);
@@ -773,7 +779,7 @@ export default function StockInsightPage() {
       
       // Warehouse total (BOLD, 6pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       const productTotalWarehouseWord = totals.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const productTotalWarehouseFullDisplay = totals.warehouseBottles + ' ' + productTotalWarehouseWord;
@@ -781,7 +787,7 @@ export default function StockInsightPage() {
       
       // Druvam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       const productTotalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const productTotalDruvamBottleFullDisplay = totals.druvamBottles + ' ' + productTotalDruvamWord;
@@ -792,7 +798,7 @@ export default function StockInsightPage() {
       
       // Spadikam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       const productTotalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const productTotalSpadikamBottleFullDisplay = totals.spadikamBottles + ' ' + productTotalSpadikamWord;
@@ -803,7 +809,7 @@ export default function StockInsightPage() {
       
       // Total (BOLD, 6pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       const totalLitresFullDisplay = totals.totalLitres + ' LITRE';
       doc.text(totalLitresFullDisplay, col.total + colWidth.total - 1, yPosition + totalsHeight / 2, { align: 'right' });
