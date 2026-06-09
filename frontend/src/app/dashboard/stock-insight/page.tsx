@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import DashboardLayout from '@/components/DashboardLayout';
 
 const PEG_SIZE_ML = 60;
@@ -197,9 +195,14 @@ export default function StockInsightPage() {
 
   const totals = calculateTotals();
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     try {
       setIsDownloading(true);
+      console.log('🔄 Starting PDF generation...');
+
+      // Dynamically import jsPDF with autoTable
+      const jsPDF = (await import('jspdf')).jsPDF;
+      await import('jspdf-autotable');
 
       // Create PDF document
       const doc = new jsPDF({
@@ -264,6 +267,8 @@ export default function StockInsightPage() {
         `${totals.totalLitres}L`
       ]);
 
+      console.log('📊 Table data prepared, rows:', tableData.length);
+
       // Generate table using autoTable
       (doc as any).autoTable({
         startY: yPosition,
@@ -290,6 +295,9 @@ export default function StockInsightPage() {
           halign: 'center',
           valign: 'middle'
         },
+        alternateRowStyles: {
+          fillColor: [255, 255, 255]
+        },
         columnStyles: {
           0: { halign: 'left', cellWidth: 55 },
           1: { halign: 'center', cellWidth: 30 },
@@ -297,8 +305,8 @@ export default function StockInsightPage() {
           3: { halign: 'center', cellWidth: 35 },
           4: { halign: 'right', cellWidth: 25 }
         },
-        didDrawPage: (data: any) => {
-          // Footer with page numbers
+        willDrawPage: (data: any) => {
+          // Page footer
           const pageCount = (doc as any).internal.getNumberOfPages();
           const currentPage = data.pageNumber;
           const text = `Page ${currentPage} of ${pageCount}`;
@@ -307,6 +315,8 @@ export default function StockInsightPage() {
           doc.text(text, pageWidth - margin - 15, pageHeight - 10);
         }
       });
+
+      console.log('✅ Table generated successfully');
 
       // ===== FOOTER =====
       const footerY = pageHeight - 18;
@@ -331,7 +341,8 @@ export default function StockInsightPage() {
       console.log('✅ PDF downloaded successfully:', fileName);
     } catch (error) {
       console.error('❌ Error generating PDF:', error);
-      alert(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Error generating PDF: ${errorMessage}\n\nCheck console (F12) for details.`);
       setIsDownloading(false);
     }
   };
