@@ -1007,7 +1007,21 @@ export default function StockInsightPage() {
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 3;
 
-      // ===== TWO BLANK LINES =====
+      // ===== THREE BLANK LINES =====
+      yPosition += 3;
+      yPosition += 3;
+      yPosition += 3;
+
+      // ===== END OF REPORT (Centered, Bold, Font size one step below PRODUCT WISE DETAILS) =====
+      // PRODUCT WISE DETAILS is 10pt, so one step below is 9pt
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.text('----- END OF REPORT -----', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
+
+      // ===== THREE BLANK LINES =====
+      yPosition += 3;
       yPosition += 3;
       yPosition += 3;
 
