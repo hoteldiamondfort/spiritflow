@@ -217,6 +217,7 @@ export default function StockInsightPage() {
       console.log('🔄 Starting PDF generation...');
 
       const { jsPDF } = await import('jspdf');
+      // Chart.js will be imported dynamically where needed for pie chart
 
       const doc = new jsPDF({
         orientation: 'portrait',
@@ -529,6 +530,164 @@ export default function StockInsightPage() {
       doc.text(totals.totalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
 
       yPosition += categoryTotalsHeight + 5;
+
+      // ===== PIE CHART (Only if ALL categories selected) =====
+      if (selectedCategory === 'all') {
+        // Blank line before chart
+        yPosition += 3;
+
+        // Get sorted categories for consistent color assignment
+        const sortedCategoriesForChart = Object.keys(categoryTotals).sort();
+        
+        // Color palette (in order)
+        const colorPalette = [
+          '#4CAF50',  // 1. Green - Beer
+          '#2196F3',  // 2. Blue - Brandy
+          '#009688',  // 3. Teal - Gin
+          '#E91E63',  // 4. Pink - Liqueur
+          '#9C27B0',  // 5. Purple - Rum
+          '#00BCD4',  // 6. Cyan - Vodka
+          '#FF9800',  // 7. Amber - Whiskey
+          '#D32F2F',  // 8. Red - Wine
+          '#757575',  // 9. Gray - Others
+          '#FF5722'   // 10. Orange - Uncategorized
+        ];
+
+        // Assign colors to categories alphabetically
+        const categoryColorMap: { [key: string]: string } = {};
+        sortedCategoriesForChart.forEach((category, index) => {
+          categoryColorMap[category] = colorPalette[index % colorPalette.length];
+        });
+
+        // Prepare chart data
+        const chartData = sortedCategoriesForChart.map((category) => ({
+          name: category,
+          value: categoryTotals[category].totalML / 1000, // Convert to litres
+          color: categoryColorMap[category]
+        }));
+
+        // Calculate total for percentages
+        const chartTotal = chartData.reduce((sum, item) => sum + item.value, 0);
+
+        // Generate pie chart
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 300;
+          canvas.height = 200;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Canvas context not available');
+
+          // Draw pie chart manually
+          const centerX = 80;
+          const centerY = 80;
+          const radius = 50;
+          let currentAngle = -Math.PI / 2; // Start from top
+
+          // Draw pie slices
+          chartData.forEach((item) => {
+            const sliceAngle = (item.value / chartTotal) * 2 * Math.PI;
+            
+            // Draw slice
+            ctx.fillStyle = item.color;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw border
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            currentAngle += sliceAngle;
+          });
+
+          // Draw legend
+          let legendY = 20;
+          ctx.font = '11px Courier';
+          ctx.fillStyle = '#000';
+          
+          chartData.forEach((item) => {
+            const percentage = ((item.value / chartTotal) * 100).toFixed(1);
+            
+            // Color box
+            ctx.fillStyle = item.color;
+            ctx.fillRect(160, legendY - 8, 10, 10);
+            
+            // Label
+            ctx.fillStyle = '#000';
+            ctx.fillText(`${item.name} (${percentage}%)`, 175, legendY);
+            legendY += 15;
+          });
+
+          // Convert canvas to image
+          const chartImage = canvas.toDataURL('image/png');
+          
+          // Calculate chart position (half-width, centered)
+          const chartWidth = 90;
+          const chartHeight = 60;
+          const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
+          
+          // Add chart to PDF
+          doc.addImage(chartImage, 'PNG', chartX, yPosition, chartWidth, chartHeight);
+          yPosition += chartHeight + 3;
+
+          // Add category volumes summary below chart
+          doc.setFont('Courier', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          doc.text('Category Volumes (Litres):', margin, yPosition);
+          yPosition += 4;
+
+          doc.setFont('Courier', 'normal');
+          doc.setFontSize(7);
+          doc.setTextColor(0, 0, 0);
+          
+          // Display each category volume
+          const volumeText = sortedCategoriesForChart
+            .map((category) => {
+              const volume = categoryTotals[category].totalML / 1000;
+              const percentage = ((volume / chartTotal) * 100).toFixed(1);
+              return `${category}: ${volume.toFixed(2)}L (${percentage}%)`;
+            })
+            .join(' | ');
+          
+          // Split text if too long
+          const maxCharsPerLine = 120;
+          if (volumeText.length > maxCharsPerLine) {
+            const words = volumeText.split(' | ');
+            let currentLine = '';
+            words.forEach((word) => {
+              if ((currentLine + word + ' | ').length > maxCharsPerLine) {
+                doc.text(currentLine, margin, yPosition);
+                yPosition += 3;
+                currentLine = word;
+              } else {
+                currentLine += (currentLine ? ' | ' : '') + word;
+              }
+            });
+            if (currentLine) {
+              doc.text(currentLine, margin, yPosition);
+              yPosition += 3;
+            }
+          } else {
+            doc.text(volumeText, margin, yPosition);
+            yPosition += 3;
+          }
+        } catch (error) {
+          console.error('Error generating pie chart:', error);
+          doc.setFont('Courier', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(200, 0, 0);
+          doc.text('[Chart generation failed]', margin, yPosition);
+          yPosition += 5;
+        }
+
+        // Blank line after chart
+        yPosition += 3;
+      }
 
       // ===== SEPARATOR =====
       doc.setDrawColor(33, 150, 243);
