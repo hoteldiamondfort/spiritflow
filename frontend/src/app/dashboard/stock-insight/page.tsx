@@ -449,7 +449,7 @@ export default function StockInsightPage() {
         const warehouseFullDisplay = warehouseBottles + ' ' + warehouseWord;
         doc.text(warehouseFullDisplay, col.warehouse + colWidth.warehouse - 1, warehouseCenterY, { align: 'right' });
 
-        // Druvam (strict right-align, tighter spacing, 6pt uniform black)
+        // Druvam (strict right-align, tighter spacing, 6pt uniform black, CENTERED VERTICALLY)
         const druvamRowHeight = rowHeight;
         const druvamCenterY = yPosition + druvamRowHeight / 2;
         
@@ -459,15 +459,15 @@ export default function StockInsightPage() {
         const druvamStk = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
         const druvamBottleWord = parseInt(druvamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
         
-        // First row: Bottles (6pt, black, regular, STRICTLY right-aligned)
+        // First row: Bottles (6pt, black, regular, STRICTLY right-aligned, centered)
         const druvamBottleFullDisplay = druvamStk.bottles + ' ' + druvamBottleWord;
-        doc.text(druvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY - 2.5, { align: 'right' });
+        doc.text(druvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY - 1.5, { align: 'right' });
         
-        // Second row: Pegs (6pt, black, regular, STRICTLY right-aligned) (tighter gap)
+        // Second row: Pegs (6pt, black, regular, STRICTLY right-aligned, centered)
         const druvamPegsFullDisplay = druvamStk.pegs + ' PEGS';
-        doc.text(druvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY + 0.8, { align: 'right' });
+        doc.text(druvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY + 1.5, { align: 'right' });
 
-        // Spadikam (strict right-align, tighter spacing, 6pt uniform black)
+        // Spadikam (strict right-align, tighter spacing, 6pt uniform black, CENTERED VERTICALLY)
         const spadikamRowHeight = rowHeight;
         const spadikamCenterY = yPosition + spadikamRowHeight / 2;
         
@@ -477,13 +477,13 @@ export default function StockInsightPage() {
         const spadikamStk = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
         const spadikamBottleWord = parseInt(spadikamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
         
-        // First row: Bottles (6pt, black, regular, STRICTLY right-aligned)
+        // First row: Bottles (6pt, black, regular, STRICTLY right-aligned, centered)
         const spadikamBottleFullDisplay = spadikamStk.bottles + ' ' + spadikamBottleWord;
-        doc.text(spadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY - 2.5, { align: 'right' });
+        doc.text(spadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY - 1.5, { align: 'right' });
         
-        // Second row: Pegs (6pt, black, regular, STRICTLY right-aligned) (tighter gap)
+        // Second row: Pegs (6pt, black, regular, STRICTLY right-aligned, centered)
         const spadikamPegsFullDisplay = spadikamStk.pegs + ' PEGS';
-        doc.text(spadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY + 0.8, { align: 'right' });
+        doc.text(spadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY + 1.5, { align: 'right' });
 
         // Total (BOLD quantity + unit, 6pt, black, STRICTLY right-aligned)
         const totalCenterY = yPosition + rowHeight / 2;
@@ -525,27 +525,27 @@ export default function StockInsightPage() {
       const totalWarehouseFullDisplay = totals.warehouseBottles + ' ' + totalWarehouseWord;
       doc.text(totalWarehouseFullDisplay, col.warehouse + colWidth.warehouse - 1, yPosition + totalsHeight / 2, { align: 'right' });
       
-      // Druvam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, tighter gap)
+      // Druvam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalDruvamBottleFullDisplay = totals.druvamBottles + ' ' + totalDruvamWord;
-      doc.text(totalDruvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 - 1.8, { align: 'right' });
+      doc.text(totalDruvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 - 1.5, { align: 'right' });
       
       const totalDruvamPegsFullDisplay = totals.druvamPegs.toFixed(2) + ' PEGS';
-      doc.text(totalDruvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.0, { align: 'right' });
+      doc.text(totalDruvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
       
-      // Spadikam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, tighter gap)
+      // Spadikam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalSpadikamBottleFullDisplay = totals.spadikamBottles + ' ' + totalSpadikamWord;
-      doc.text(totalSpadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 - 1.8, { align: 'right' });
+      doc.text(totalSpadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 - 1.5, { align: 'right' });
       
       const totalSpadikamPegsFullDisplay = totals.spadikamPegs.toFixed(2) + ' PEGS';
-      doc.text(totalSpadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.0, { align: 'right' });
+      doc.text(totalSpadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
       
       // Total (BOLD, 6pt, black, STRICTLY right-aligned)
       doc.setFont('Helvetica', 'bold');
