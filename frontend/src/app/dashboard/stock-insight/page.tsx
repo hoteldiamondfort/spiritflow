@@ -437,14 +437,11 @@ export default function StockInsightPage() {
 
       // CATEGORY GRAND TOTALS ROW (matching product table style - white text on blue background)
       const categoryTotalsHeight = 7;
-      
       // Calculate grand totals by summing all category bottles/pegs
       let categoryGrandTotalWarehouseBottles = 0;
       let categoryGrandTotalDruvamBottles = 0;
       let categoryGrandTotalSpadikamBottles = 0;
       let categoryGrandTotalML = 0;
-      let categoryGrandTotalDruvamML = 0;
-      let categoryGrandTotalSpadikamML = 0;
 
       sortedCategories.forEach((category) => {
         const data = categoryTotals[category];
@@ -452,20 +449,12 @@ export default function StockInsightPage() {
         categoryGrandTotalDruvamBottles += data.druvamBottles;
         categoryGrandTotalSpadikamBottles += data.spadikamBottles;
         categoryGrandTotalML += data.totalML;
-        
-        // Accumulate raw ML for druvam and spadikam (to avoid peg rounding errors)
-        // We'll recalculate pegs from total ML at display time
-        filteredData.forEach((item) => {
-          if ((item.category_name || 'UNCATEGORIZED') === category) {
-            categoryGrandTotalDruvamML += item.breakdown.druvam;
-            categoryGrandTotalSpadikamML += item.breakdown.spadikam;
-          }
-        });
       });
 
-      // Convert pegs using 60ml peg size for display at grand total (warehouse always uses product ml_per_bottle, but for totals we use fixed 60)
-      const categoryGrandTotalDruvamPegs = Math.floor((categoryGrandTotalDruvamML % 60) / 60 * 2) / 2;
-      const categoryGrandTotalSpadikamPegs = Math.floor((categoryGrandTotalSpadikamML % 60) / 60 * 2) / 2;
+      // Use the exact same grand total pegs from product table (calculated using each product's ml_per_bottle)
+      // This ensures category grand total matches product table grand total perfectly
+      const categoryGrandTotalDruvamPegs = totals.druvamPegs;
+      const categoryGrandTotalSpadikamPegs = totals.spadikamPegs;
 
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, categoryTableWidth, categoryTotalsHeight, 'F');
