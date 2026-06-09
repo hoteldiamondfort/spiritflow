@@ -441,20 +441,31 @@ export default function StockInsightPage() {
       // Calculate grand totals by summing all category bottles/pegs
       let categoryGrandTotalWarehouseBottles = 0;
       let categoryGrandTotalDruvamBottles = 0;
-      let categoryGrandTotalDruvamPegs = 0;
       let categoryGrandTotalSpadikamBottles = 0;
-      let categoryGrandTotalSpadikamPegs = 0;
       let categoryGrandTotalML = 0;
+      let categoryGrandTotalDruvamML = 0;
+      let categoryGrandTotalSpadikamML = 0;
 
       sortedCategories.forEach((category) => {
         const data = categoryTotals[category];
         categoryGrandTotalWarehouseBottles += data.warehouseBottles;
         categoryGrandTotalDruvamBottles += data.druvamBottles;
-        categoryGrandTotalDruvamPegs += data.druvamPegs;
         categoryGrandTotalSpadikamBottles += data.spadikamBottles;
-        categoryGrandTotalSpadikamPegs += data.spadikamPegs;
         categoryGrandTotalML += data.totalML;
+        
+        // Accumulate raw ML for druvam and spadikam (to avoid peg rounding errors)
+        // We'll recalculate pegs from total ML at display time
+        filteredData.forEach((item) => {
+          if ((item.category_name || 'UNCATEGORIZED') === category) {
+            categoryGrandTotalDruvamML += item.breakdown.druvam;
+            categoryGrandTotalSpadikamML += item.breakdown.spadikam;
+          }
+        });
       });
+
+      // Convert pegs using 60ml peg size for display at grand total (warehouse always uses product ml_per_bottle, but for totals we use fixed 60)
+      const categoryGrandTotalDruvamPegs = Math.floor((categoryGrandTotalDruvamML % 60) / 60 * 2) / 2;
+      const categoryGrandTotalSpadikamPegs = Math.floor((categoryGrandTotalSpadikamML % 60) / 60 * 2) / 2;
 
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, categoryTableWidth, categoryTotalsHeight, 'F');
@@ -506,8 +517,8 @@ export default function StockInsightPage() {
       doc.setFont('Courier', 'bold');
       doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
-      const categoryGrandTotalLitres = (categoryGrandTotalML / 1000).toFixed(2);
-      doc.text(categoryGrandTotalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
+      // Use totals.totalLitres to match product table grand total exactly (eliminates rounding discrepancies)
+      doc.text(totals.totalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
 
       yPosition += categoryTotalsHeight + 5;
 
