@@ -234,11 +234,11 @@ export default function StockInsightPage() {
       doc.rect(0, 0, pageWidth, 24, 'F');
 
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(16);
+      doc.setFontSize(17);
       doc.setTextColor(255, 255, 255);
       doc.text('HOTEL DIAMOND FORT', pageWidth / 2, yPosition + 4, { align: 'center' });
       
-      doc.setFontSize(10);
+      doc.setFontSize(11);
       doc.text('CONSOLIDATED STOCK REPORT', pageWidth / 2, yPosition + 10, { align: 'center' });
 
       yPosition = 28;
@@ -253,7 +253,7 @@ export default function StockInsightPage() {
       
       // Metadata text with equal padding
       doc.setFont('Courier', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
       
       const reportDate = new Date().toLocaleDateString('en-IN');
@@ -303,7 +303,7 @@ export default function StockInsightPage() {
 
       // ===== HEADER ROW =====
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, tableWidth, headerHeight, 'F');
@@ -327,7 +327,7 @@ export default function StockInsightPage() {
 
       // ===== DATA ROWS =====
       doc.setFont('Courier', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
 
       filteredData.forEach((item, idx) => {
@@ -350,7 +350,7 @@ export default function StockInsightPage() {
           doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
           
           doc.setFont('Courier', 'italic');
-          doc.setFontSize(6);
+          doc.setFontSize(7);
           doc.setTextColor(100, 100, 100);
           doc.text(
             'This is a computer generated report based on the data available within the system.',
@@ -365,7 +365,7 @@ export default function StockInsightPage() {
 
           // Repeat header
           doc.setFont('Courier', 'bold');
-          doc.setFontSize(8);
+          doc.setFontSize(9);
           doc.setTextColor(255, 255, 255);
           doc.setFillColor(33, 150, 243);
           doc.rect(margin, yPosition, tableWidth, headerHeight, 'F');
@@ -385,7 +385,7 @@ export default function StockInsightPage() {
 
           yPosition += headerHeight;
           doc.setFont('Courier', 'normal');
-          doc.setFontSize(7);
+          doc.setFontSize(8);
           doc.setTextColor(0, 0, 0);
         }
 
@@ -414,7 +414,7 @@ export default function StockInsightPage() {
         
         // Alias (bold)
         doc.setFont('Courier', 'bold');
-        doc.setFontSize(6.5);
+        doc.setFontSize(7.5);
         aliasLines.forEach((line: string) => {
           doc.text(line, col.product + 0.5, productY);
           productY += 2.2;
@@ -422,7 +422,7 @@ export default function StockInsightPage() {
 
         // Name (normal)
         doc.setFont('Courier', 'normal');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         nameLines.forEach((line: string) => {
           doc.text(line, col.product + 0.5, productY);
           productY += 2.2;
@@ -430,7 +430,7 @@ export default function StockInsightPage() {
 
         // Category (italic with label)
         doc.setFont('Courier', 'italic');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(80, 80, 80);
         categoryLines.forEach((line: string) => {
           doc.text(line, col.product + 0.5, productY);
@@ -439,7 +439,7 @@ export default function StockInsightPage() {
 
         // Product Code (italic with label)
         doc.setFont('Courier', 'italic');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(80, 80, 80);
         productCodeLines.forEach((line: string) => {
           doc.text(line, col.product + 0.5, productY);
@@ -452,7 +452,7 @@ export default function StockInsightPage() {
         const warehouseCenterY = yPosition + warehouseRowHeight / 2;
         
         doc.setFont('Courier', 'normal');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(0, 0, 0);
         const warehouseBottles = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
         const warehouseWord = parseInt(warehouseBottles) === 1 ? 'BOTTLE' : 'BOTTLES';
@@ -466,7 +466,7 @@ export default function StockInsightPage() {
         const druvamCenterY = yPosition + druvamRowHeight / 2;
         
         doc.setFont('Courier', 'normal');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(0, 0, 0);
         const druvamStk = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
         const druvamBottleWord = parseInt(druvamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
@@ -484,7 +484,7 @@ export default function StockInsightPage() {
         const spadikamCenterY = yPosition + spadikamRowHeight / 2;
         
         doc.setFont('Courier', 'normal');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(0, 0, 0);
         const spadikamStk = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
         const spadikamBottleWord = parseInt(spadikamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
@@ -500,7 +500,7 @@ export default function StockInsightPage() {
         // Total (BOLD quantity + unit, 6pt, black, STRICTLY right-aligned)
         const totalCenterY = yPosition + rowHeight / 2;
         doc.setFont('Courier', 'bold');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(0, 0, 0);
         const totalValue = (item.total_quantity_ml / 1000).toFixed(2);
         const totalFullDisplay = totalValue + ' LITRE';
@@ -512,7 +512,7 @@ export default function StockInsightPage() {
       // ===== TOTALS ROW (with more height for spacing) =====
       const totalsHeight = 9;
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, tableWidth, totalsHeight, 'F');
@@ -526,12 +526,12 @@ export default function StockInsightPage() {
       doc.line(col.total, yPosition, col.total, yPosition + totalsHeight);
 
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.text('TOTAL', col.product + 1, yPosition + totalsHeight / 2 + 1.2, { align: 'left' });
       
       // Warehouse total (BOLD, 6pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(6);
+      doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
       const totalWarehouseWord = totals.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalWarehouseFullDisplay = totals.warehouseBottles + ' ' + totalWarehouseWord;
@@ -539,7 +539,7 @@ export default function StockInsightPage() {
       
       // Druvam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(6);
+      doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
       const totalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalDruvamBottleFullDisplay = totals.druvamBottles + ' ' + totalDruvamWord;
@@ -550,7 +550,7 @@ export default function StockInsightPage() {
       
       // Spadikam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(6);
+      doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
       const totalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalSpadikamBottleFullDisplay = totals.spadikamBottles + ' ' + totalSpadikamWord;
@@ -561,7 +561,7 @@ export default function StockInsightPage() {
       
       // Total (BOLD, 6pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(6);
+      doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
       const totalLitresFullDisplay = totals.totalLitres + ' LITRE';
       doc.text(totalLitresFullDisplay, col.total + colWidth.total - 1, yPosition + totalsHeight / 2, { align: 'right' });
@@ -572,7 +572,7 @@ export default function StockInsightPage() {
       doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
 
       doc.setFont('Courier', 'italic');
-      doc.setFontSize(6);
+      doc.setFontSize(7);
       doc.setTextColor(100, 100, 100);
       doc.text(
         'This is a computer generated report based on the data available within the system.',
