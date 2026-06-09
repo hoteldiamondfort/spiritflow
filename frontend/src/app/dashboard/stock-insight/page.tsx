@@ -4,10 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 
-// Import jsPDF and autoTable at the top level
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
 const PEG_SIZE_ML = 60;
 
 interface Product {
@@ -199,10 +195,12 @@ export default function StockInsightPage() {
 
   const totals = calculateTotals();
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     try {
       setIsDownloading(true);
       console.log('🔄 Starting PDF generation...');
+
+      const { jsPDF } = await import('jspdf');
 
       // Create PDF document
       const doc = new jsPDF({
@@ -214,6 +212,7 @@ export default function StockInsightPage() {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 15;
+      const tableWidth = pageWidth - margin * 2;
       let yPosition = margin;
 
       // ===== HEADER SECTION =====
@@ -247,98 +246,155 @@ export default function StockInsightPage() {
 
       // ===== SEPARATOR LINE =====
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 4;
+      yPosition += 6;
 
-      // ===== TABLE DATA =====
-      const tableData = filteredData.map((item) => [
-        `${item.product_alias}\n${item.product_name}\n${item.category_name}`,
-        getWarehouseDisplay(item.breakdown.warehouse, item.ml_per_bottle),
-        getStockDisplay(item.breakdown.druvam, item.ml_per_bottle),
-        getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle),
-        `${(item.total_quantity_ml / 1000).toFixed(2)}L`
-      ]);
+      // ===== MANUAL TABLE =====
+      const colWidths = {
+        product: 55,
+        warehouse: 28,
+        druvam: 33,
+        spadikam: 33,
+        total: 22
+      };
 
-      // Add totals row
-      tableData.push([
+      const rowHeight = 8;
+      const headerBg = [240, 240, 240];
+      const bodyBg = [255, 255, 255];
+
+      // Header Row
+      doc.setFillColor(headerBg[0], headerBg[1], headerBg[2]);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setDrawColor(0, 0, 0);
+
+      const headers = ['PRODUCT', 'WAREHOUSE', 'DRUVAM', 'SPADIKAM', 'TOTAL'];
+      const colPositions = [
+        margin,
+        margin + colWidths.product,
+        margin + colWidths.product + colWidths.warehouse,
+        margin + colWidths.product + colWidths.warehouse + colWidths.druvam,
+        margin + colWidths.product + colWidths.warehouse + colWidths.druvam + colWidths.spadikam
+      ];
+
+      // Draw header row
+      for (let i = 0; i < headers.length; i++) {
+        doc.rect(colPositions[i], yPosition - rowHeight + 2, 
+          i < headers.length - 1 ? 
+            colPositions[i + 1] - colPositions[i] : 
+            colWidths.total, 
+          rowHeight, 'F');
+        doc.text(headers[i], colPositions[i] + 2, yPosition - 2, { align: 'left' });
+      }
+
+      yPosition += rowHeight;
+
+      // Body Rows
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+
+      filteredData.forEach((item, idx) => {
+        // Check if we need a new page
+        if (yPosition + rowHeight > pageHeight - 20) {
+          doc.addPage();
+          yPosition = margin;
+        }
+
+        // Alternate row colors
+        if (idx % 2 === 0) {
+          doc.setFillColor(bodyBg[0], bodyBg[1], bodyBg[2]);
+        } else {
+          doc.setFillColor(245, 245, 245);
+        }
+
+        // Product column (multiline)
+        const productText = `${item.product_alias} | ${item.product_name}`;
+        const categoryText = item.category_name;
+        
+        doc.rect(colPositions[0], yPosition - rowHeight + 2, colWidths.product, rowHeight, 'F');
+        doc.setFontSize(7);
+        doc.text(productText, colPositions[0] + 1, yPosition - 4);
+        doc.text(categoryText, colPositions[0] + 1, yPosition - 1);
+
+        // Warehouse
+        doc.setFontSize(8);
+        doc.rect(colPositions[1], yPosition - rowHeight + 2, colWidths.warehouse, rowHeight, 'F');
+        const warehouseText = getWarehouseDisplay(item.breakdown.warehouse, item.ml_per_bottle);
+        doc.text(warehouseText, colPositions[1] + colWidths.warehouse / 2, yPosition - 2, { align: 'center' });
+
+        // Druvam
+        doc.rect(colPositions[2], yPosition - rowHeight + 2, colWidths.druvam, rowHeight, 'F');
+        const druvamText = getStockDisplay(item.breakdown.druvam, item.ml_per_bottle);
+        doc.text(druvamText, colPositions[2] + colWidths.druvam / 2, yPosition - 2, { align: 'center' });
+
+        // Spadikam
+        doc.rect(colPositions[3], yPosition - rowHeight + 2, colWidths.spadikam, rowHeight, 'F');
+        const spadikamText = getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle);
+        doc.text(spadikamText, colPositions[3] + colWidths.spadikam / 2, yPosition - 2, { align: 'center' });
+
+        // Total
+        doc.rect(colPositions[4], yPosition - rowHeight + 2, colWidths.total, rowHeight, 'F');
+        const totalText = `${(item.total_quantity_ml / 1000).toFixed(2)}L`;
+        doc.text(totalText, colPositions[4] + colWidths.total - 2, yPosition - 2, { align: 'right' });
+
+        yPosition += rowHeight;
+      });
+
+      // Totals Row
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setFillColor(240, 240, 240);
+
+      const totalsRow = [
         'TOTAL',
         `${totals.warehouseBottles} Bottles`,
-        `${totals.druvamBottles} Bottles | ${totals.druvamPegs} Pegs`,
-        `${totals.spadikamBottles} Bottles | ${totals.spadikamPegs} Pegs`,
+        `${totals.druvamBottles} B | ${totals.druvamPegs} P`,
+        `${totals.spadikamBottles} B | ${totals.spadikamPegs} P`,
         `${totals.totalLitres}L`
-      ]);
+      ];
 
-      console.log('📊 Table data prepared, rows:', tableData.length);
-
-      // Generate table using autoTable
-      const docAsAny = doc as any;
-      if (docAsAny.autoTable) {
-        docAsAny.autoTable({
-          startY: yPosition,
-          head: [['PRODUCT', 'WAREHOUSE', 'DRUVAM', 'SPADIKAM', 'TOTAL']],
-          body: tableData,
-          margin: { left: margin, right: margin, top: 10, bottom: 20 },
-          headStyles: {
-            fillColor: [240, 240, 240],
-            textColor: [0, 0, 0],
-            fontStyle: 'bold',
-            fontSize: 9,
-            cellPadding: 4,
-            halign: 'center',
-            valign: 'middle',
-            lineColor: [0, 0, 0],
-            lineWidth: 0.5
-          },
-          bodyStyles: {
-            textColor: [0, 0, 0],
-            fontSize: 8,
-            cellPadding: 3,
-            lineColor: [200, 200, 200],
-            lineWidth: 0.3,
-            halign: 'center',
-            valign: 'middle'
-          },
-          alternateRowStyles: {
-            fillColor: [255, 255, 255]
-          },
-          columnStyles: {
-            0: { halign: 'left', cellWidth: 55 },
-            1: { halign: 'center', cellWidth: 30 },
-            2: { halign: 'center', cellWidth: 35 },
-            3: { halign: 'center', cellWidth: 35 },
-            4: { halign: 'right', cellWidth: 25 }
-          }
-        });
-
-        console.log('✅ Table generated successfully');
-
-        // ===== FOOTER =====
-        const footerY = pageHeight - 18;
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, footerY, pageWidth - margin, footerY);
-
-        doc.setFont('Helvetica', 'italic');
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(
-          'This is a computer generated report based on the data available within the system.',
-          pageWidth / 2,
-          footerY + 5,
-          { align: 'center' }
-        );
-
-        // ===== DOWNLOAD PDF =====
-        const fileName = `Stock_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(fileName);
-
-        setIsDownloading(false);
-        console.log('✅ PDF downloaded successfully:', fileName);
-      } else {
-        throw new Error('autoTable plugin not loaded. Please refresh the page and try again.');
+      for (let i = 0; i < totalsRow.length; i++) {
+        const colWidth = i < totalsRow.length - 1 ? 
+          colPositions[i + 1] - colPositions[i] : 
+          colWidths.total;
+        
+        doc.rect(colPositions[i], yPosition - rowHeight + 2, colWidth, rowHeight, 'F');
+        
+        if (i === totalsRow.length - 1) {
+          doc.text(totalsRow[i], colPositions[i] + colWidth - 2, yPosition - 2, { align: 'right' });
+        } else if (i === 0) {
+          doc.text(totalsRow[i], colPositions[i] + 2, yPosition - 2, { align: 'left' });
+        } else {
+          doc.text(totalsRow[i], colPositions[i] + (colWidth / 2), yPosition - 2, { align: 'center' });
+        }
       }
+
+      yPosition += rowHeight;
+
+      // ===== FOOTER =====
+      const footerY = pageHeight - 15;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, footerY, pageWidth - margin, footerY);
+
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        'This is a computer generated report based on the data available within the system.',
+        pageWidth / 2,
+        footerY + 5,
+        { align: 'center' }
+      );
+
+      // ===== DOWNLOAD PDF =====
+      const fileName = `Stock_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+
+      setIsDownloading(false);
+      console.log('✅ PDF downloaded successfully:', fileName);
     } catch (error) {
       console.error('❌ Error generating PDF:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Error generating PDF: ${errorMessage}\n\nPlease refresh the page and try again.`);
+      alert(`Error: ${errorMessage}`);
       setIsDownloading(false);
     }
   };
