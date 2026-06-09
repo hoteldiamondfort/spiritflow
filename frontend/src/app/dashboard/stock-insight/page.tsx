@@ -310,12 +310,15 @@ export default function StockInsightPage() {
       doc.setTextColor(0, 0, 0);
 
       filteredData.forEach((item, idx) => {
-        // Calculate product text height (alias + name + category)
+        // Calculate product text height (alias + name + category + product code)
         const aliasLines = doc.splitTextToSize(item.product_alias, colWidth.product - 2);
         const nameLines = doc.splitTextToSize(item.product_name, colWidth.product - 2);
-        const categoryLines = doc.splitTextToSize(item.category_name, colWidth.product - 2);
+        const categoryText = `CATEGORY: ${item.category_name}`;
+        const categoryLines = doc.splitTextToSize(categoryText, colWidth.product - 2);
+        const productCodeText = `PRODUCT CODE: ${item.product_code}`;
+        const productCodeLines = doc.splitTextToSize(productCodeText, colWidth.product - 2);
         
-        const productHeight = (aliasLines.length + nameLines.length + categoryLines.length) * 2.2 + 2;
+        const productHeight = (aliasLines.length + nameLines.length + categoryLines.length + productCodeLines.length) * 2.2 + 2;
         const rowHeight = Math.max(productHeight, 6);
 
         // Check page break
@@ -382,8 +385,8 @@ export default function StockInsightPage() {
         doc.line(col.spadikam, yPosition, col.spadikam, yPosition + rowHeight);
         doc.line(col.total, yPosition, col.total, yPosition + rowHeight);
 
-        // Product column: alias (bold) + name (normal) + category (italic) - VERTICALLY CENTERED
-        const totalProductLines = aliasLines.length + nameLines.length + categoryLines.length;
+        // Product column: alias (bold) + name (normal) + category (italic) + product code (italic) - VERTICALLY CENTERED
+        const totalProductLines = aliasLines.length + nameLines.length + categoryLines.length + productCodeLines.length;
         const totalProductHeight = totalProductLines * 2.2;
         const topPadding = (rowHeight - totalProductHeight) / 2;
         let productY = yPosition + topPadding + 2.2;
@@ -404,11 +407,20 @@ export default function StockInsightPage() {
           productY += 2.2;
         });
 
-        // Category (italic)
+        // Category (italic with label)
         doc.setFont('Helvetica', 'italic');
         doc.setFontSize(6);
         doc.setTextColor(80, 80, 80);
         categoryLines.forEach((line: string) => {
+          doc.text(line, col.product + 0.5, productY);
+          productY += 2.2;
+        });
+
+        // Product Code (italic with label)
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(6);
+        doc.setTextColor(80, 80, 80);
+        productCodeLines.forEach((line: string) => {
           doc.text(line, col.product + 0.5, productY);
           productY += 2.2;
         });
