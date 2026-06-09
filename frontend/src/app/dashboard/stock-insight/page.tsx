@@ -264,14 +264,14 @@ export default function StockInsightPage() {
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 3;
 
-      // ===== TABLE CONFIG (Product: 1/3, rest: 1/6 each) =====
+      // ===== TABLE CONFIG (Product: 36.67% +10%, rest adjusted) =====
       const tableWidth = pageWidth - margin * 2;
       const colWidth = {
-        product: (tableWidth / 3),         // 1/3 of width (wide for wrapping text)
-        warehouse: (tableWidth / 6),       // 1/6 of width
-        druvam: (tableWidth / 6),          // 1/6 of width
-        spadikam: (tableWidth / 6),        // 1/6 of width
-        total: (tableWidth / 6)            // 1/6 of width (compact for numbers)
+        product: (tableWidth / 3) * 1.1,    // 1/3 + 10% more = ~40% of width
+        warehouse: (tableWidth / 6) * 0.85, // Adjusted down
+        druvam: (tableWidth / 6) * 0.85,    // Adjusted down
+        spadikam: (tableWidth / 6) * 0.85,  // Adjusted down
+        total: (tableWidth / 6) * 0.85      // Adjusted down
       };
 
       const col = {
@@ -286,7 +286,7 @@ export default function StockInsightPage() {
 
       // ===== HEADER ROW =====
       doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, tableWidth, headerHeight, 'F');
@@ -310,7 +310,7 @@ export default function StockInsightPage() {
 
       // ===== DATA ROWS =====
       doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
 
       filteredData.forEach((item, idx) => {
@@ -432,29 +432,73 @@ export default function StockInsightPage() {
 
         // Warehouse (right-aligned, 2-row format: value + unit on each row)
         doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(6.5);
+        doc.setFontSize(8);
         const warehouseBottles = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
-        doc.text(`${warehouseBottles} Bottle`, col.warehouse + colWidth.warehouse - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        const warehouseWord = parseInt(warehouseBottles) === 1 ? 'BOTTLE' : 'BOTTLES';
+        
+        // Quantity (normal) + Unit (italic light)
+        doc.text(warehouseBottles, col.warehouse + colWidth.warehouse - 1 - doc.getStringUnitWidth(warehouseWord) * 2.5, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text(warehouseWord, col.warehouse + colWidth.warehouse - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
 
         // Druvam (right-aligned, 2-row format: value + unit on each row)
         doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(6.5);
+        doc.setFontSize(8);
         const druvamStk = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
-        doc.text(`${druvamStk.bottles} Bottle`, col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
-        doc.text(`${druvamStk.pegs} Pegs`, col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 + 1.2, { align: 'right' });
+        const druvamBottleWord = parseInt(druvamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
+        
+        doc.text(druvamStk.bottles, col.druvam + colWidth.druvam - 1 - doc.getStringUnitWidth(druvamBottleWord) * 2.5, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text(druvamBottleWord, col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+        
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(druvamStk.pegs, col.druvam + colWidth.druvam - 1 - doc.getStringUnitWidth('PEGS') * 2.5, yPosition + rowHeight / 2 + 1.2, { align: 'right' });
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text('PEGS', col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 + 1.2, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
 
         // Spadikam (right-aligned, 2-row format: value + unit on each row)
         doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(6.5);
+        doc.setFontSize(8);
         const spadikamStk = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
-        doc.text(`${spadikamStk.bottles} Bottle`, col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
-        doc.text(`${spadikamStk.pegs} Pegs`, col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 + 1.2, { align: 'right' });
-
-        // Total (right-aligned) - single row with value and unit
-        doc.setFont('Helvetica', 'normal');
+        const spadikamBottleWord = parseInt(spadikamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
+        
+        doc.text(spadikamStk.bottles, col.spadikam + colWidth.spadikam - 1 - doc.getStringUnitWidth(spadikamBottleWord) * 2.5, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        doc.setFont('Helvetica', 'italic');
         doc.setFontSize(6.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text(spadikamBottleWord, col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+        
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(spadikamStk.pegs, col.spadikam + colWidth.spadikam - 1 - doc.getStringUnitWidth('PEGS') * 2.5, yPosition + rowHeight / 2 + 1.2, { align: 'right' });
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text('PEGS', col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 + 1.2, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+
+        // Total (right-aligned) - single row with BOLD value and italic unit
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(8);
         const totalValue = (item.total_quantity_ml / 1000).toFixed(2);
-        doc.text(`${totalValue} Litre`, col.total + colWidth.total - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
+        doc.text(totalValue, col.total + colWidth.total - 1 - doc.getStringUnitWidth('LITRE') * 2.5, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
+        
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text('LITRE', col.total + colWidth.total - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
 
         yPosition += rowHeight;
       });
@@ -475,23 +519,69 @@ export default function StockInsightPage() {
       doc.line(col.spadikam, yPosition, col.spadikam, yPosition + totalsHeight);
       doc.line(col.total, yPosition, col.total, yPosition + totalsHeight);
 
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8);
       doc.text('TOTAL', col.product + 1, yPosition + totalsHeight / 2 + 1.2, { align: 'left' });
       
-      // Warehouse total (bold, single row)
-      doc.setFont('Helvetica', 'bold');
+      // Warehouse total (regular, single row)
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      const totalWarehouseWord = totals.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+      doc.text(`${totals.warehouseBottles}`, col.warehouse + colWidth.warehouse - 1 - doc.getStringUnitWidth(totalWarehouseWord) * 2.5, yPosition + totalsHeight / 2 + 0.5, { align: 'right' });
+      doc.setFont('Helvetica', 'italic');
       doc.setFontSize(6.5);
-      doc.text(`${totals.warehouseBottles} Bottle`, col.warehouse + colWidth.warehouse - 1, yPosition + totalsHeight / 2 + 0.5, { align: 'right' });
+      doc.setTextColor(120, 120, 120);
+      doc.text(totalWarehouseWord, col.warehouse + colWidth.warehouse - 1, yPosition + totalsHeight / 2 + 0.5, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
       
-      // Druvam total (bold, 2-row format: value + unit each row)
-      doc.text(`${totals.druvamBottles} Bottle`, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 - 1.2, { align: 'right' });
-      doc.text(`${totals.druvamPegs.toFixed(2)} Pegs`, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.2, { align: 'right' });
+      // Druvam total (regular, 2-row format)
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      const totalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+      doc.text(`${totals.druvamBottles}`, col.druvam + colWidth.druvam - 1 - doc.getStringUnitWidth(totalDruvamWord) * 2.5, yPosition + totalsHeight / 2 - 1.2, { align: 'right' });
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(120, 120, 120);
+      doc.text(totalDruvamWord, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 - 1.2, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
       
-      // Spadikam total (bold, 2-row format: value + unit each row)
-      doc.text(`${totals.spadikamBottles} Bottle`, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 - 1.2, { align: 'right' });
-      doc.text(`${totals.spadikamPegs.toFixed(2)} Pegs`, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.2, { align: 'right' });
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`${totals.druvamPegs.toFixed(2)}`, col.druvam + colWidth.druvam - 1 - doc.getStringUnitWidth('PEGS') * 2.5, yPosition + totalsHeight / 2 + 1.2, { align: 'right' });
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(120, 120, 120);
+      doc.text('PEGS', col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.2, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
       
-      // Total (bold, single row with "Litre")
-      doc.text(`${totals.totalLitres} Litre`, col.total + colWidth.total - 1, yPosition + totalsHeight / 2 + 0.5, { align: 'right' });
+      // Spadikam total (regular, 2-row format)
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      const totalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+      doc.text(`${totals.spadikamBottles}`, col.spadikam + colWidth.spadikam - 1 - doc.getStringUnitWidth(totalSpadikamWord) * 2.5, yPosition + totalsHeight / 2 - 1.2, { align: 'right' });
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(120, 120, 120);
+      doc.text(totalSpadikamWord, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 - 1.2, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+      
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`${totals.spadikamPegs.toFixed(2)}`, col.spadikam + colWidth.spadikam - 1 - doc.getStringUnitWidth('PEGS') * 2.5, yPosition + totalsHeight / 2 + 1.2, { align: 'right' });
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(120, 120, 120);
+      doc.text('PEGS', col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.2, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+      
+      // Total (BOLD value with italic unit)
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text(`${totals.totalLitres}`, col.total + colWidth.total - 1 - doc.getStringUnitWidth('LITRE') * 2.5, yPosition + totalsHeight / 2 + 0.5, { align: 'right' });
+      doc.setFont('Helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(120, 120, 120);
+      doc.text('LITRE', col.total + colWidth.total - 1, yPosition + totalsHeight / 2 + 0.5, { align: 'right' });
 
       // ===== FOOTER =====
       doc.setDrawColor(33, 150, 243);
