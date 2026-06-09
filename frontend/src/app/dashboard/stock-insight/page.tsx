@@ -233,7 +233,7 @@ export default function StockInsightPage() {
       doc.setFillColor(33, 150, 243);
       doc.rect(0, 0, pageWidth, 24, 'F');
 
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(255, 255, 255);
       doc.text('HOTEL DIAMOND FORT', pageWidth / 2, yPosition + 4, { align: 'center' });
@@ -252,7 +252,7 @@ export default function StockInsightPage() {
       doc.rect(margin, metadataBoxY, pageWidth - margin * 2, metadataBoxHeight, 'F');
       
       // Metadata text with equal padding
-      doc.setFont('Helvetica', 'normal');
+      doc.setFont('Courier', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
       
@@ -302,7 +302,7 @@ export default function StockInsightPage() {
       const headerHeight = 5;
 
       // ===== HEADER ROW =====
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
@@ -326,7 +326,7 @@ export default function StockInsightPage() {
       yPosition += headerHeight;
 
       // ===== DATA ROWS =====
-      doc.setFont('Helvetica', 'normal');
+      doc.setFont('Courier', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
 
@@ -349,7 +349,7 @@ export default function StockInsightPage() {
           doc.setLineWidth(0.3);
           doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
           
-          doc.setFont('Helvetica', 'italic');
+          doc.setFont('Courier', 'italic');
           doc.setFontSize(6);
           doc.setTextColor(100, 100, 100);
           doc.text(
@@ -364,7 +364,7 @@ export default function StockInsightPage() {
           yPosition = margin;
 
           // Repeat header
-          doc.setFont('Helvetica', 'bold');
+          doc.setFont('Courier', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(255, 255, 255);
           doc.setFillColor(33, 150, 243);
@@ -384,7 +384,7 @@ export default function StockInsightPage() {
           doc.text('TOTAL', col.total + colWidth.total / 2, yPosition + 3.5, { align: 'center' });
 
           yPosition += headerHeight;
-          doc.setFont('Helvetica', 'normal');
+          doc.setFont('Courier', 'normal');
           doc.setFontSize(7);
           doc.setTextColor(0, 0, 0);
         }
@@ -413,7 +413,7 @@ export default function StockInsightPage() {
         let productY = yPosition + topPadding + 2.2;
         
         // Alias (bold)
-        doc.setFont('Helvetica', 'bold');
+        doc.setFont('Courier', 'bold');
         doc.setFontSize(6.5);
         aliasLines.forEach((line: string) => {
           doc.text(line, col.product + 0.5, productY);
@@ -421,7 +421,7 @@ export default function StockInsightPage() {
         });
 
         // Name (normal)
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Courier', 'normal');
         doc.setFontSize(6);
         nameLines.forEach((line: string) => {
           doc.text(line, col.product + 0.5, productY);
@@ -429,7 +429,7 @@ export default function StockInsightPage() {
         });
 
         // Category (italic with label)
-        doc.setFont('Helvetica', 'italic');
+        doc.setFont('Courier', 'italic');
         doc.setFontSize(6);
         doc.setTextColor(80, 80, 80);
         categoryLines.forEach((line: string) => {
@@ -438,7 +438,7 @@ export default function StockInsightPage() {
         });
 
         // Product Code (italic with label)
-        doc.setFont('Helvetica', 'italic');
+        doc.setFont('Courier', 'italic');
         doc.setFontSize(6);
         doc.setTextColor(80, 80, 80);
         productCodeLines.forEach((line: string) => {
@@ -451,7 +451,7 @@ export default function StockInsightPage() {
         const warehouseRowHeight = rowHeight;
         const warehouseCenterY = yPosition + warehouseRowHeight / 2;
         
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Courier', 'normal');
         doc.setFontSize(6);
         doc.setTextColor(0, 0, 0);
         const warehouseBottles = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
@@ -465,7 +465,7 @@ export default function StockInsightPage() {
         const druvamRowHeight = rowHeight;
         const druvamCenterY = yPosition + druvamRowHeight / 2;
         
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Courier', 'normal');
         doc.setFontSize(6);
         doc.setTextColor(0, 0, 0);
         const druvamStk = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
@@ -483,7 +483,7 @@ export default function StockInsightPage() {
         const spadikamRowHeight = rowHeight;
         const spadikamCenterY = yPosition + spadikamRowHeight / 2;
         
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Courier', 'normal');
         doc.setFontSize(6);
         doc.setTextColor(0, 0, 0);
         const spadikamStk = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
@@ -499,7 +499,7 @@ export default function StockInsightPage() {
 
         // Total (BOLD quantity + unit, 6pt, black, STRICTLY right-aligned)
         const totalCenterY = yPosition + rowHeight / 2;
-        doc.setFont('Helvetica', 'bold');
+        doc.setFont('Courier', 'bold');
         doc.setFontSize(6);
         doc.setTextColor(0, 0, 0);
         const totalValue = (item.total_quantity_ml / 1000).toFixed(2);
@@ -511,7 +511,7 @@ export default function StockInsightPage() {
 
       // ===== TOTALS ROW (with more height for spacing) =====
       const totalsHeight = 9;
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(7);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
@@ -525,12 +525,12 @@ export default function StockInsightPage() {
       doc.line(col.spadikam, yPosition, col.spadikam, yPosition + totalsHeight);
       doc.line(col.total, yPosition, col.total, yPosition + totalsHeight);
 
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(8);
       doc.text('TOTAL', col.product + 1, yPosition + totalsHeight / 2 + 1.2, { align: 'left' });
       
       // Warehouse total (BOLD, 6pt, black, STRICTLY right-aligned)
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalWarehouseWord = totals.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
@@ -538,7 +538,7 @@ export default function StockInsightPage() {
       doc.text(totalWarehouseFullDisplay, col.warehouse + colWidth.warehouse - 1, yPosition + totalsHeight / 2, { align: 'right' });
       
       // Druvam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
@@ -549,7 +549,7 @@ export default function StockInsightPage() {
       doc.text(totalDruvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
       
       // Spadikam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
@@ -560,7 +560,7 @@ export default function StockInsightPage() {
       doc.text(totalSpadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
       
       // Total (BOLD, 6pt, black, STRICTLY right-aligned)
-      doc.setFont('Helvetica', 'bold');
+      doc.setFont('Courier', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalLitresFullDisplay = totals.totalLitres + ' LITRE';
@@ -571,7 +571,7 @@ export default function StockInsightPage() {
       doc.setLineWidth(0.3);
       doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
 
-      doc.setFont('Helvetica', 'italic');
+      doc.setFont('Courier', 'italic');
       doc.setFontSize(6);
       doc.setTextColor(100, 100, 100);
       doc.text(
