@@ -569,13 +569,14 @@ export default function StockInsightPage() {
         // Calculate total for percentages
         const chartTotal = chartData.reduce((sum, item) => sum + item.value, 0);
 
-        // Generate pie chart (2.5x bigger, half-page diameter)
+        // Generate pie chart (2.5x bigger, square canvas 1:1)
         try {
-          // Create canvas for pie chart - 2.5x bigger
+          // Create SQUARE canvas for pie chart - 1:1 aspect ratio
           const dpr = 4;
+          const canvasSize = 600; // Square: 600x600
           const canvas = document.createElement('canvas');
-          canvas.width = 1000 * dpr;
-          canvas.height = 750 * dpr;
+          canvas.width = canvasSize * dpr;
+          canvas.height = canvasSize * dpr;
           
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Canvas context not available');
@@ -583,9 +584,9 @@ export default function StockInsightPage() {
           // Scale for HD rendering
           ctx.scale(dpr, dpr);
 
-          // Draw pie chart with anti-aliasing
-          const centerX = 250;
-          const centerY = 250;
+          // Draw pie chart with anti-aliasing - centered in square canvas
+          const centerX = canvasSize / 2;
+          const centerY = canvasSize / 2;
           const radius = 175;
           let currentAngle = -Math.PI / 2;
 
@@ -613,17 +614,16 @@ export default function StockInsightPage() {
           const chartImage = canvas.toDataURL('image/png', 0.95);
           
           // Calculate chart position - CENTERED on page
-          // Use larger size: 140mm width (was 130mm)
-          const chartWidth = 140;
-          const chartHeight = 105;
-          const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
+          // Square chart: 130mm x 130mm
+          const chartSize = 130;
+          const chartX = margin + (pageWidth - margin * 2 - chartSize) / 2;
           
           // Add 2-line gap on top
           yPosition += 2;
           
-          // Add chart to PDF
-          doc.addImage(chartImage, 'PNG', chartX, yPosition, chartWidth, chartHeight);
-          yPosition += chartHeight + 2; // 2-line gap on bottom only
+          // Add chart to PDF (square)
+          doc.addImage(chartImage, 'PNG', chartX, yPosition, chartSize, chartSize);
+          yPosition += chartSize + 2; // 2-line gap on bottom only
 
         } catch (error) {
           console.error('Error generating pie chart:', error);
