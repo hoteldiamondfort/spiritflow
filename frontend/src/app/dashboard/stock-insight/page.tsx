@@ -156,6 +156,11 @@ export default function StockInsightPage() {
     return `${bottles} Bottles | ${pegs} Pegs`;
   };
 
+  const getWarehouseDisplay = (ml: number, mlPerBottle: number): string => {
+    const { bottles } = convertFromML(ml, mlPerBottle);
+    return `${bottles} Bottles`;
+  };
+
   const calculateTotals = () => {
     let warehouseBottles = 0;
     let druvamBottles = 0;
@@ -318,10 +323,7 @@ export default function StockInsightPage() {
                       </td>
                       <td style={styles.td}>
                         <span style={{fontSize: 'clamp(11px, 1.2vw, 12px)', fontWeight: 'bold'}}>
-                          {(() => {
-                            const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
-                            return `${bottles} Bottles`;
-                          })()}
+                          {getWarehouseDisplay(item.breakdown.warehouse, item.ml_per_bottle)}
                         </span>
                       </td>
                       <td style={styles.td}>
@@ -374,7 +376,7 @@ export default function StockInsightPage() {
           filteredData={filteredData}
           totals={totals}
           user={user}
-          convertFromML={convertFromML}
+          getWarehouseDisplay={getWarehouseDisplay}
           getStockDisplay={getStockDisplay}
           onClose={() => setShowPrintPreview(false)}
         />
@@ -387,7 +389,7 @@ function ProfessionalPrintModal({
   filteredData,
   totals,
   user,
-  convertFromML,
+  getWarehouseDisplay,
   getStockDisplay,
   onClose
 }: any) {
@@ -395,133 +397,62 @@ function ProfessionalPrintModal({
   const reportTime = new Date().toLocaleTimeString('en-IN');
 
   useEffect(() => {
-    setTimeout(() => {
-      window.print();
-    }, 500);
+    // Don't auto-open print dialog - let user trigger it manually
+    // setTimeout(() => {
+    //   window.print();
+    // }, 500);
   }, []);
 
   return (
-    <div style={printStyles.printContainer}>
-      {/* Close button - only visible on screen */}
-      <div style={printStyles.closeButtonContainer}>
-        <button onClick={onClose} style={printStyles.closeButton}>✕ CLOSE</button>
-      </div>
-
-      {/* Print Content - A4 Professional Format */}
-      <div style={printStyles.reportWrapper}>
-        
-        {/* ===== HEADER SECTION ===== */}
-        <div style={printStyles.headerSection}>
-          <div style={printStyles.hotelName}>HOTEL DIAMOND FORT</div>
-          <div style={printStyles.reportTitle}>CONSOLIDATED STOCK REPORT</div>
-        </div>
-
-        {/* ===== REPORT METADATA ===== */}
-        <div style={printStyles.metadataSection}>
-          <div style={printStyles.metadataRow}>
-            <div style={printStyles.metadataLabel}>Date:</div>
-            <div style={printStyles.metadataValue}>{reportDate}</div>
-            <div style={printStyles.metadataLabel}>Report Type:</div>
-            <div style={printStyles.metadataValue}>Current</div>
-          </div>
-          <div style={printStyles.metadataRow}>
-            <div style={printStyles.metadataLabel}>Time:</div>
-            <div style={printStyles.metadataValue}>{reportTime}</div>
-            <div style={printStyles.metadataLabel}>Prepared by:</div>
-            <div style={printStyles.metadataValue}>{user?.name || 'System User'}</div>
-          </div>
-        </div>
-
-        {/* ===== SEPARATOR LINE ===== */}
-        <div style={printStyles.separatorLine}></div>
-
-        {/* ===== TABLE ===== */}
-        <table style={printStyles.table}>
-          <thead>
-            <tr style={printStyles.tableHeaderRow}>
-              <th style={{...printStyles.th, width: '28%', textAlign: 'left'}}>PRODUCT</th>
-              <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>WAREHOUSE</th>
-              <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>DRUVAM</th>
-              <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>SPADIKAM</th>
-              <th style={{...printStyles.th, width: '18%', textAlign: 'right'}}>TOTAL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((item: any, idx: number) => (
-              <tr key={idx} style={printStyles.tableRow}>
-                <td style={{...printStyles.td, textAlign: 'left'}}>
-                  <div style={printStyles.productAlias}>{item.product_alias}</div>
-                  <div style={printStyles.productName}>{item.product_name}</div>
-                  <div style={printStyles.productCategory}>{item.category_name}</div>
-                </td>
-                <td style={{...printStyles.td, textAlign: 'center'}}>
-                  {(() => {
-                    const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
-                    return `${bottles}`;
-                  })()}
-                </td>
-                <td style={{...printStyles.td, textAlign: 'center'}}>
-                  {getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}
-                </td>
-                <td style={{...printStyles.td, textAlign: 'center'}}>
-                  {getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}
-                </td>
-                <td style={{...printStyles.td, textAlign: 'right'}}>
-                  {(item.total_quantity_ml / 1000).toFixed(2)}L
-                </td>
-              </tr>
-            ))}
-            
-            {/* ===== TOTALS ROW ===== */}
-            <tr style={printStyles.totalRow}>
-              <td style={{...printStyles.td, textAlign: 'left', fontWeight: 'bold'}}>TOTAL</td>
-              <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
-                {totals.warehouseBottles}
-              </td>
-              <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
-                {totals.druvamBottles} | {totals.druvamPegs}
-              </td>
-              <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
-                {totals.spadikamBottles} | {totals.spadikamPegs}
-              </td>
-              <td style={{...printStyles.td, textAlign: 'right', fontWeight: 'bold'}}>
-                {totals.totalLitres}L
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* ===== FOOTER SEPARATOR ===== */}
-        <div style={printStyles.footerSeparatorLine}></div>
-
-        {/* ===== FOOTER NOTE ===== */}
-        <div style={printStyles.footerNote}>
-          This is a computer generated report based on the data available within the system.
-        </div>
-
-      </div>
-
-      {/* ===== PRINT CSS ===== */}
+    <>
+      {/* PRINT STYLESHEET - Only for print media */}
       <style>{`
         @media print {
           * {
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
           }
 
-          body, html {
-            margin: 0;
-            padding: 0;
-            background: white;
+          html, body {
             width: 100%;
             height: 100%;
-          }
-
-          .print-container {
-            display: block !important;
             margin: 0;
             padding: 0;
             background: white;
+          }
+
+          body {
+            font-family: Arial, sans-serif;
+          }
+
+          .print-modal-overlay {
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+            width: 100% !important;
+            height: auto !important;
+            background: white !important;
+            z-index: auto !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+
+          .print-close-btn {
+            display: none !important;
+          }
+
+          .print-report-wrapper {
+            background: white !important;
+            padding: 0.5in 0.5in 0.5in 0.5in !important;
+            margin: 0 !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            page-break-after: auto !important;
+            page-break-inside: avoid !important;
           }
 
           @page {
@@ -529,64 +460,176 @@ function ProfessionalPrintModal({
             margin: 0.5in 0.5in 0.5in 0.5in;
           }
 
-          .report-wrapper {
-            background: white;
-            padding: 0;
-            margin: 0;
-            width: 100%;
-            font-family: 'Arial', sans-serif;
-          }
-
-          .close-button-container {
-            display: none !important;
-          }
-
           table {
-            width: 100%;
-            border-collapse: collapse;
-            page-break-inside: avoid;
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid !important;
           }
 
           thead {
-            display: table-header-group;
+            display: table-header-group !important;
+          }
+
+          tbody {
+            display: table-row-group !important;
           }
 
           tr {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
           }
 
-          .header-section {
-            page-break-after: avoid;
+          td, th {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+            page-break-inside: avoid !important;
           }
 
-          .metadata-section {
-            page-break-after: avoid;
+          .print-header-section {
+            page-break-after: avoid !important;
+            margin-bottom: 15px !important;
+            padding-bottom: 15px !important;
+            border-bottom: 2px solid #000 !important;
           }
 
-          .footer-note {
-            page-break-before: avoid;
+          .print-metadata-section {
+            page-break-after: avoid !important;
+            margin-bottom: 15px !important;
+          }
+
+          .print-footer-note {
+            page-break-before: avoid !important;
+            margin-top: 15px !important;
+            padding-top: 10px !important;
           }
         }
 
         @media screen {
-          .close-button-container {
-            display: flex;
+          .print-close-btn {
+            display: flex !important;
           }
 
-          .print-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #f5f5f5;
-            z-index: 10000;
-            overflow: auto;
-            padding: 20px;
+          .print-modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: #f5f5f5 !important;
+            z-index: 10000 !important;
+            overflow: auto !important;
+            padding: 20px !important;
+          }
+
+          .print-report-wrapper {
+            background: white !important;
+            padding: 40px 50px !important;
+            margin: 0 0 40px 0 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+            margin-bottom: 40px !important;
           }
         }
       `}</style>
-    </div>
+
+      <div className="print-modal-overlay">
+        {/* Close button - only visible on screen */}
+        <div style={screenStyles.closeButtonContainer} className="print-close-btn">
+          <button onClick={onClose} style={screenStyles.closeButton}>✕ CLOSE</button>
+        </div>
+
+        {/* Print Content - A4 Professional Format */}
+        <div style={screenStyles.reportWrapper} className="print-report-wrapper">
+          
+          {/* ===== HEADER SECTION ===== */}
+          <div style={printStyles.headerSection} className="print-header-section">
+            <div style={printStyles.hotelName}>HOTEL DIAMOND FORT</div>
+            <div style={printStyles.reportTitle}>CONSOLIDATED STOCK REPORT</div>
+          </div>
+
+          {/* ===== REPORT METADATA ===== */}
+          <div style={printStyles.metadataSection} className="print-metadata-section">
+            <div style={printStyles.metadataRow}>
+              <div style={printStyles.metadataLabel}>Date:</div>
+              <div style={printStyles.metadataValue}>{reportDate}</div>
+              <div style={printStyles.metadataLabel}>Report Type:</div>
+              <div style={printStyles.metadataValue}>Current</div>
+            </div>
+            <div style={printStyles.metadataRow}>
+              <div style={printStyles.metadataLabel}>Time:</div>
+              <div style={printStyles.metadataValue}>{reportTime}</div>
+              <div style={printStyles.metadataLabel}>Prepared by:</div>
+              <div style={printStyles.metadataValue}>{user?.name || 'System User'}</div>
+            </div>
+          </div>
+
+          {/* ===== SEPARATOR LINE ===== */}
+          <div style={printStyles.separatorLine}></div>
+
+          {/* ===== TABLE ===== */}
+          <table style={printStyles.table}>
+            <thead>
+              <tr style={printStyles.tableHeaderRow}>
+                <th style={{...printStyles.th, width: '28%', textAlign: 'left'}}>PRODUCT</th>
+                <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>WAREHOUSE</th>
+                <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>DRUVAM</th>
+                <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>SPADIKAM</th>
+                <th style={{...printStyles.th, width: '18%', textAlign: 'right'}}>TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredData.map((item: any, idx: number) => (
+                <tr key={idx} style={printStyles.tableRow}>
+                  <td style={{...printStyles.td, textAlign: 'left'}}>
+                    <div style={printStyles.productAlias}>{item.product_alias}</div>
+                    <div style={printStyles.productName}>{item.product_name}</div>
+                    <div style={printStyles.productCategory}>{item.category_name}</div>
+                  </td>
+                  <td style={{...printStyles.td, textAlign: 'center'}}>
+                    {getWarehouseDisplay(item.breakdown.warehouse, item.ml_per_bottle)}
+                  </td>
+                  <td style={{...printStyles.td, textAlign: 'center'}}>
+                    {getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}
+                  </td>
+                  <td style={{...printStyles.td, textAlign: 'center'}}>
+                    {getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}
+                  </td>
+                  <td style={{...printStyles.td, textAlign: 'right'}}>
+                    {(item.total_quantity_ml / 1000).toFixed(2)}L
+                  </td>
+                </tr>
+              ))}
+              
+              {/* ===== TOTALS ROW ===== */}
+              <tr style={printStyles.totalRow}>
+                <td style={{...printStyles.td, textAlign: 'left', fontWeight: 'bold'}}>TOTAL</td>
+                <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
+                  {totals.warehouseBottles} Bottles
+                </td>
+                <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
+                  {totals.druvamBottles} Bottles | {totals.druvamPegs} Pegs
+                </td>
+                <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
+                  {totals.spadikamBottles} Bottles | {totals.spadikamPegs} Pegs
+                </td>
+                <td style={{...printStyles.td, textAlign: 'right', fontWeight: 'bold'}}>
+                  {totals.totalLitres}L
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* ===== FOOTER SEPARATOR ===== */}
+          <div style={printStyles.footerSeparatorLine}></div>
+
+          {/* ===== FOOTER NOTE ===== */}
+          <div style={printStyles.footerNote} className="print-footer-note">
+            This is a computer generated report based on the data available within the system.
+          </div>
+
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -724,19 +767,7 @@ const styles = {
   } as React.CSSProperties,
 };
 
-const printStyles = {
-  printContainer: {
-    position: 'fixed' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#f5f5f5',
-    zIndex: 10000,
-    overflowY: 'auto' as const,
-    padding: '20px',
-  },
-
+const screenStyles = {
   closeButtonContainer: {
     display: 'flex',
     justifyContent: 'flex-end',
@@ -764,8 +795,9 @@ const printStyles = {
     fontFamily: 'Arial, sans-serif',
     color: '#000',
   } as React.CSSProperties,
+};
 
-  // ===== HEADER SECTION =====
+const printStyles = {
   headerSection: {
     textAlign: 'center' as const,
     marginBottom: '20px',
@@ -788,7 +820,6 @@ const printStyles = {
     fontFamily: 'Arial, sans-serif',
   } as React.CSSProperties,
 
-  // ===== METADATA SECTION =====
   metadataSection: {
     marginBottom: '20px',
     fontSize: '10pt',
@@ -813,14 +844,12 @@ const printStyles = {
     marginRight: '40px',
   } as React.CSSProperties,
 
-  // ===== SEPARATOR LINE =====
   separatorLine: {
     height: '1px',
     backgroundColor: '#ccc',
     marginBottom: '15px',
   } as React.CSSProperties,
 
-  // ===== TABLE STYLES =====
   table: {
     width: '100%',
     borderCollapse: 'collapse' as const,
@@ -841,16 +870,18 @@ const printStyles = {
     fontWeight: 'bold',
     fontSize: '9pt',
     fontFamily: 'Arial, sans-serif',
+    border: '1px solid #000',
   } as React.CSSProperties,
 
   tableRow: {
-    borderBottom: '1px solid #ddd',
+    borderBottom: '1px solid #000',
   } as React.CSSProperties,
 
   td: {
     padding: '8px',
     fontSize: '9pt',
     fontFamily: 'Arial, sans-serif',
+    border: '1px solid #000',
   } as React.CSSProperties,
 
   productAlias: {
@@ -870,7 +901,6 @@ const printStyles = {
     color: '#666',
   } as React.CSSProperties,
 
-  // ===== TOTALS ROW =====
   totalRow: {
     backgroundColor: '#f0f0f0',
     fontWeight: 'bold',
@@ -878,7 +908,6 @@ const printStyles = {
     borderBottom: '2px solid #000',
   } as React.CSSProperties,
 
-  // ===== FOOTER SEPARATOR =====
   footerSeparatorLine: {
     height: '1px',
     backgroundColor: '#ccc',
@@ -886,7 +915,6 @@ const printStyles = {
     marginBottom: '10px',
   } as React.CSSProperties,
 
-  // ===== FOOTER NOTE =====
   footerNote: {
     fontSize: '8pt',
     color: '#666',
