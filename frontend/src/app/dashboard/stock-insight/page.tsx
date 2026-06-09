@@ -569,27 +569,36 @@ export default function StockInsightPage() {
         // Calculate total for percentages
         const chartTotal = chartData.reduce((sum, item) => sum + item.value, 0);
 
-        // Generate pie chart
+        // Generate HD quality pie chart
         try {
+          // Use 4x resolution for HD quality
+          const dpr = 4;
           const canvas = document.createElement('canvas');
-          canvas.width = 600;
-          canvas.height = 400;
+          canvas.width = 800 * dpr;
+          canvas.height = 500 * dpr;
           
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Canvas context not available');
+          
+          // Scale for HD rendering
+          ctx.scale(dpr, dpr);
 
-          // Draw pie chart manually
-          const centerX = 160;
-          const centerY = 160;
-          const radius = 100;
+          // Draw pie chart with anti-aliasing
+          const centerX = 200;
+          const centerY = 150;
+          const radius = 120;
           let currentAngle = -Math.PI / 2; // Start from top
 
-          // Draw pie slices
+          // Draw pie slices with smooth edges
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
           chartData.forEach((item) => {
             const sliceAngle = (item.value / chartTotal) * 2 * Math.PI;
             
-            // Draw slice
+            // Draw slice with shadow effect
             ctx.fillStyle = item.color;
+            ctx.globalAlpha = 0.95;
             ctx.beginPath();
             ctx.moveTo(centerX, centerY);
             ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
@@ -597,86 +606,61 @@ export default function StockInsightPage() {
             ctx.fill();
 
             // Draw border
-            ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 3;
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 4;
             ctx.stroke();
 
             currentAngle += sliceAngle;
           });
 
-          // Draw legend
-          let legendY = 40;
-          ctx.font = 'bold 13px Courier';
-          ctx.fillStyle = '#000';
+          // Draw legend with better formatting
+          let legendY = 50;
+          ctx.globalAlpha = 1;
+          ctx.textBaseline = 'middle';
           
           chartData.forEach((item) => {
             const percentage = ((item.value / chartTotal) * 100).toFixed(1);
+            const volume = item.value.toFixed(2);
             
-            // Color box
+            // Color box with rounded corners
             ctx.fillStyle = item.color;
-            ctx.fillRect(320, legendY - 10, 15, 15);
+            ctx.beginPath();
+            ctx.roundRect(420, legendY - 12, 20, 20, 3);
+            ctx.fill();
             
-            // Label
-            ctx.fillStyle = '#000';
-            ctx.font = '12px Courier';
-            ctx.fillText(`${item.name} (${percentage}%)`, 340, legendY);
-            legendY += 30;
+            // Border for color box
+            ctx.strokeStyle = '#CCC';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Label with bold font
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 14px Arial, sans-serif';
+            ctx.fillText(`${item.name}`, 455, legendY - 3);
+            
+            // Details in smaller font
+            ctx.fillStyle = '#666666';
+            ctx.font = '11px Arial, sans-serif';
+            ctx.fillText(`${volume}L (${percentage}%)`, 455, legendY + 10);
+            
+            legendY += 55;
           });
 
-          // Convert canvas to image
-          const chartImage = canvas.toDataURL('image/png');
+          // Convert canvas to high-quality image
+          const chartImage = canvas.toDataURL('image/png', 0.95);
           
-          // Calculate chart position (half-width, centered) - DOUBLED SIZE
+          // Calculate chart position (half-width, centered)
           const chartWidth = 180;
-          const chartHeight = 120;
+          const chartHeight = 112;
           const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
           
           // Add chart to PDF
           doc.addImage(chartImage, 'PNG', chartX, yPosition, chartWidth, chartHeight);
-          yPosition += chartHeight + 3;
+          yPosition += chartHeight;
 
-          // Add category volumes summary below chart
-          doc.setFont('Courier', 'bold');
-          doc.setFontSize(8);
-          doc.setTextColor(0, 0, 0);
-          doc.text('Category Volumes (Litres):', margin, yPosition);
-          yPosition += 4;
-
-          doc.setFont('Courier', 'normal');
-          doc.setFontSize(7);
-          doc.setTextColor(0, 0, 0);
-          
-          // Display each category volume
-          const volumeText = sortedCategoriesForChart
-            .map((category) => {
-              const volume = categoryTotals[category].totalML / 1000;
-              const percentage = ((volume / chartTotal) * 100).toFixed(1);
-              return `${category}: ${volume.toFixed(2)}L (${percentage}%)`;
-            })
-            .join(' | ');
-          
-          // Split text if too long
-          const maxCharsPerLine = 120;
-          if (volumeText.length > maxCharsPerLine) {
-            const words = volumeText.split(' | ');
-            let currentLine = '';
-            words.forEach((word) => {
-              if ((currentLine + word + ' | ').length > maxCharsPerLine) {
-                doc.text(currentLine, margin, yPosition);
-                yPosition += 3;
-                currentLine = word;
-              } else {
-                currentLine += (currentLine ? ' | ' : '') + word;
-              }
-            });
-            if (currentLine) {
-              doc.text(currentLine, margin, yPosition);
-              yPosition += 3;
-            }
-          } else {
-            doc.text(volumeText, margin, yPosition);
-            yPosition += 3;
-          }
+          // Blank line after chart
+          yPosition += 2;
         } catch (error) {
           console.error('Error generating pie chart:', error);
           doc.setFont('Courier', 'normal');
