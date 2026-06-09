@@ -291,18 +291,40 @@ export default function StockInsightPage() {
       yPosition += 3;
 
       // ===== CATEGORY-WISE SUMMARY TABLE =====
-      // Calculate category totals
-      const categoryTotals: { [key: string]: { warehouse: number; druvam: number; spadikam: number; total: number } } = {};
+      // Calculate category totals with proper bottle conversion per product
+      const categoryTotals: { 
+        [key: string]: { 
+          warehouseBottles: number; warehousePegs: number;
+          druvamBottles: number; druvamPegs: number;
+          spadikamBottles: number; spadikamPegs: number;
+          totalML: number;
+        } 
+      } = {};
       
       filteredData.forEach((item) => {
         const category = item.category_name || 'UNCATEGORIZED';
         if (!categoryTotals[category]) {
-          categoryTotals[category] = { warehouse: 0, druvam: 0, spadikam: 0, total: 0 };
+          categoryTotals[category] = { 
+            warehouseBottles: 0, warehousePegs: 0,
+            druvamBottles: 0, druvamPegs: 0,
+            spadikamBottles: 0, spadikamPegs: 0,
+            totalML: 0
+          };
         }
-        categoryTotals[category].warehouse += item.breakdown.warehouse;
-        categoryTotals[category].druvam += item.breakdown.druvam;
-        categoryTotals[category].spadikam += item.breakdown.spadikam;
-        categoryTotals[category].total += item.total_quantity_ml;
+
+        // Convert each product's stock using its own ml_per_bottle
+        const warehouseConv = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
+        const druvamConv = convertFromML(item.breakdown.druvam, item.ml_per_bottle);
+        const spadikamConv = convertFromML(item.breakdown.spadikam, item.ml_per_bottle);
+
+        // Sum bottles and pegs separately
+        categoryTotals[category].warehouseBottles += warehouseConv.bottles;
+        categoryTotals[category].warehousePegs += warehouseConv.pegs;
+        categoryTotals[category].druvamBottles += druvamConv.bottles;
+        categoryTotals[category].druvamPegs += druvamConv.pegs;
+        categoryTotals[category].spadikamBottles += spadikamConv.bottles;
+        categoryTotals[category].spadikamPegs += spadikamConv.pegs;
+        categoryTotals[category].totalML += item.total_quantity_ml;
       });
 
       // Sort categories alphabetically
@@ -368,12 +390,7 @@ export default function StockInsightPage() {
         }
 
         const data = categoryTotals[category];
-        // Use ml_per_bottle value of 60 for category calculations
-        const mlPerBottle = 60;
-        const warehouseConv = convertFromML(data.warehouse, mlPerBottle);
-        const druvamConv = convertFromML(data.druvam, mlPerBottle);
-        const spadikamConv = convertFromML(data.spadikam, mlPerBottle);
-        const totalLitres = (data.total / 1000).toFixed(2);
+        const totalLitres = (data.totalML / 1000).toFixed(2);
 
         const categoryCenterY = yPosition + categoryRowHeight / 2;
 
@@ -385,14 +402,14 @@ export default function StockInsightPage() {
         // Warehouse (single row - only bottles, right-aligned)
         doc.setFont('Courier', 'normal');
         doc.setFontSize(7);
-        const warehouseBottleWord = warehouseConv.bottles === 1 ? 'BOTTLE' : 'BOTTLES';
-        const warehouseFullDisplay = warehouseConv.bottles + ' ' + warehouseBottleWord;
+        const warehouseBottleWord = data.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+        const warehouseFullDisplay = data.warehouseBottles + ' ' + warehouseBottleWord;
         doc.text(warehouseFullDisplay, categoryCol.warehouse + categoryColWidth.warehouse - 1, categoryCenterY, { align: 'right' });
 
         // Druvam (2-row format with spacing - bottles and pegs, right-aligned)
-        const druvamBottleWord = druvamConv.bottles === 1 ? 'BOTTLE' : 'BOTTLES';
-        const druvamBottleFullDisplay = druvamConv.bottles + ' ' + druvamBottleWord;
-        const druvamPegsFullDisplay = druvamConv.pegs.toFixed(2) + ' PEGS';
+        const druvamBottleWord = data.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+        const druvamBottleFullDisplay = data.druvamBottles + ' ' + druvamBottleWord;
+        const druvamPegsFullDisplay = data.druvamPegs.toFixed(2) + ' PEGS';
         
         doc.setFont('Courier', 'normal');
         doc.setFontSize(7);
@@ -400,9 +417,9 @@ export default function StockInsightPage() {
         doc.text(druvamPegsFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, categoryCenterY + 1.5, { align: 'right' });
 
         // Spadikam (2-row format with spacing - bottles and pegs, right-aligned)
-        const spadikamBottleWord = spadikamConv.bottles === 1 ? 'BOTTLE' : 'BOTTLES';
-        const spadikamBottleFullDisplay = spadikamConv.bottles + ' ' + spadikamBottleWord;
-        const spadikamPegsFullDisplay = spadikamConv.pegs.toFixed(2) + ' PEGS';
+        const spadikamBottleWord = data.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+        const spadikamBottleFullDisplay = data.spadikamBottles + ' ' + spadikamBottleWord;
+        const spadikamPegsFullDisplay = data.spadikamPegs.toFixed(2) + ' PEGS';
         
         doc.setFont('Courier', 'normal');
         doc.setFontSize(7);
@@ -420,6 +437,25 @@ export default function StockInsightPage() {
 
       // CATEGORY GRAND TOTALS ROW (matching product table style - white text on blue background)
       const categoryTotalsHeight = 7;
+      
+      // Calculate grand totals by summing all category bottles/pegs
+      let categoryGrandTotalWarehouseBottles = 0;
+      let categoryGrandTotalDruvamBottles = 0;
+      let categoryGrandTotalDruvamPegs = 0;
+      let categoryGrandTotalSpadikamBottles = 0;
+      let categoryGrandTotalSpadikamPegs = 0;
+      let categoryGrandTotalML = 0;
+
+      sortedCategories.forEach((category) => {
+        const data = categoryTotals[category];
+        categoryGrandTotalWarehouseBottles += data.warehouseBottles;
+        categoryGrandTotalDruvamBottles += data.druvamBottles;
+        categoryGrandTotalDruvamPegs += data.druvamPegs;
+        categoryGrandTotalSpadikamBottles += data.spadikamBottles;
+        categoryGrandTotalSpadikamPegs += data.spadikamPegs;
+        categoryGrandTotalML += data.totalML;
+      });
+
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, categoryTableWidth, categoryTotalsHeight, 'F');
 
@@ -433,44 +469,45 @@ export default function StockInsightPage() {
 
       doc.setFont('Courier', 'bold');
       doc.setFontSize(9);
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(0, 0, 0);
       doc.text('TOTAL', categoryCol.category + 1, yPosition + categoryTotalsHeight / 2 + 1.2, { align: 'left' });
 
-      // Warehouse total (BOLD, 7pt, white, STRICTLY right-aligned)
+      // Warehouse total (BOLD, 7pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
       doc.setFontSize(7);
-      doc.setTextColor(255, 255, 255);
-      const categoryTotalWarehouseWord = totals.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
-      const categoryTotalWarehouseFullDisplay = totals.warehouseBottles + ' ' + categoryTotalWarehouseWord;
+      doc.setTextColor(0, 0, 0);
+      const categoryTotalWarehouseWord = categoryGrandTotalWarehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+      const categoryTotalWarehouseFullDisplay = categoryGrandTotalWarehouseBottles + ' ' + categoryTotalWarehouseWord;
       doc.text(categoryTotalWarehouseFullDisplay, categoryCol.warehouse + categoryColWidth.warehouse - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
 
-      // Druvam total (BOLD, 7pt, white, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
+      // Druvam total (BOLD, 7pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
       doc.setFontSize(7);
-      doc.setTextColor(255, 255, 255);
-      const categoryTotalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
-      const categoryTotalDruvamBottleFullDisplay = totals.druvamBottles + ' ' + categoryTotalDruvamWord;
+      doc.setTextColor(0, 0, 0);
+      const categoryTotalDruvamWord = categoryGrandTotalDruvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+      const categoryTotalDruvamBottleFullDisplay = categoryGrandTotalDruvamBottles + ' ' + categoryTotalDruvamWord;
       doc.text(categoryTotalDruvamBottleFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, yPosition + categoryTotalsHeight / 2 - 1.5, { align: 'right' });
 
-      const categoryTotalDruvamPegsFullDisplay = totals.druvamPegs.toFixed(2) + ' PEGS';
+      const categoryTotalDruvamPegsFullDisplay = categoryGrandTotalDruvamPegs.toFixed(2) + ' PEGS';
       doc.text(categoryTotalDruvamPegsFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, yPosition + categoryTotalsHeight / 2 + 1.5, { align: 'right' });
 
-      // Spadikam total (BOLD, 7pt, white, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
+      // Spadikam total (BOLD, 7pt, black, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
       doc.setFont('Courier', 'bold');
       doc.setFontSize(7);
-      doc.setTextColor(255, 255, 255);
-      const categoryTotalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
-      const categoryTotalSpadikamBottleFullDisplay = totals.spadikamBottles + ' ' + categoryTotalSpadikamWord;
+      doc.setTextColor(0, 0, 0);
+      const categoryTotalSpadikamWord = categoryGrandTotalSpadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
+      const categoryTotalSpadikamBottleFullDisplay = categoryGrandTotalSpadikamBottles + ' ' + categoryTotalSpadikamWord;
       doc.text(categoryTotalSpadikamBottleFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, yPosition + categoryTotalsHeight / 2 - 1.5, { align: 'right' });
 
-      const categoryTotalSpadikamPegsFullDisplay = totals.spadikamPegs.toFixed(2) + ' PEGS';
+      const categoryTotalSpadikamPegsFullDisplay = categoryGrandTotalSpadikamPegs.toFixed(2) + ' PEGS';
       doc.text(categoryTotalSpadikamPegsFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, yPosition + categoryTotalsHeight / 2 + 1.5, { align: 'right' });
 
-      // Total (BOLD, 7pt, white, STRICTLY right-aligned)
+      // Total (BOLD, 7pt, black, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
       doc.setFontSize(7);
-      doc.setTextColor(255, 255, 255);
-      doc.text(totals.totalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+      const categoryGrandTotalLitres = (categoryGrandTotalML / 1000).toFixed(2);
+      doc.text(categoryGrandTotalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
 
       yPosition += categoryTotalsHeight + 5;
 
