@@ -222,27 +222,27 @@ export default function StockInsightPage() {
 
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 12;
-      let yPosition = 8;
+      const margin = 10;
+      let yPosition = 6;
 
       // ===== PROFESSIONAL HEADER BACKGROUND =====
       doc.setFillColor(33, 150, 243);
-      doc.rect(0, 0, pageWidth, 26, 'F');
+      doc.rect(0, 0, pageWidth, 24, 'F');
 
       // ===== HEADER TEXT =====
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(255, 255, 255);
-      doc.text('HOTEL DIAMOND FORT', pageWidth / 2, yPosition + 5, { align: 'center' });
+      doc.text('HOTEL DIAMOND FORT', pageWidth / 2, yPosition + 4, { align: 'center' });
       
-      doc.setFontSize(11);
-      doc.text('CONSOLIDATED STOCK REPORT', pageWidth / 2, yPosition + 12, { align: 'center' });
+      doc.setFontSize(10);
+      doc.text('CONSOLIDATED STOCK REPORT', pageWidth / 2, yPosition + 10, { align: 'center' });
 
-      yPosition = 32;
+      yPosition = 28;
 
       // ===== METADATA SECTION =====
       doc.setFont('Helvetica', 'normal');
-      doc.setFontSize(8.5);
+      doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
 
       const reportDate = new Date().toLocaleDateString('en-IN');
@@ -254,25 +254,25 @@ export default function StockInsightPage() {
       doc.text(`Report Type: Current`, pageWidth - margin, yPosition, { align: 'right' });
       doc.text(`Prepared by: ${user?.name || 'System User'}`, pageWidth - margin, yPosition + 4, { align: 'right' });
 
-      yPosition += 11;
+      yPosition += 10;
 
       // ===== SEPARATOR LINE =====
       doc.setDrawColor(33, 150, 243);
-      doc.setLineWidth(0.4);
+      doc.setLineWidth(0.3);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 4;
+      yPosition += 3;
 
       // ===== TABLE CONFIGURATION =====
+      const tableWidth = pageWidth - margin * 2;
       const colWidths = {
-        product: 42,
-        warehouse: 24,
-        druvam: 28,
-        spadikam: 28,
-        total: 20
+        product: 45,
+        warehouse: 22,
+        druvam: 26,
+        spadikam: 26,
+        total: 18
       };
 
-      const tableWidth = pageWidth - margin * 2;
-      const rowHeight = 6;
+      const rowHeight = 8;
       const headerRowHeight = 5;
 
       const colPositions = [
@@ -285,23 +285,25 @@ export default function StockInsightPage() {
 
       // ===== TABLE HEADER =====
       doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(8);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
-      doc.rect(margin, yPosition - headerRowHeight + 0.5, tableWidth, headerRowHeight, 'F');
+      doc.rect(margin, yPosition - headerRowHeight + 0.2, tableWidth, headerRowHeight, 'F');
 
-      // Draw vertical column separators
-      doc.setDrawColor(33, 150, 243);
-      doc.setLineWidth(0.3);
-      for (let i = 1; i < 5; i++) {
-        doc.line(colPositions[i], yPosition - headerRowHeight + 0.5, colPositions[i], yPosition + 0.5);
-      }
+      // Draw vertical separators
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.2);
+      doc.line(colPositions[1], yPosition - headerRowHeight + 0.2, colPositions[1], yPosition + 0.2);
+      doc.line(colPositions[2], yPosition - headerRowHeight + 0.2, colPositions[2], yPosition + 0.2);
+      doc.line(colPositions[3], yPosition - headerRowHeight + 0.2, colPositions[3], yPosition + 0.2);
+      doc.line(colPositions[4], yPosition - headerRowHeight + 0.2, colPositions[4], yPosition + 0.2);
 
-      doc.text('PRODUCT', colPositions[0] + 1, yPosition - 0.8);
-      doc.text('WAREHOUSE', colPositions[1] + 2, yPosition - 0.8, { align: 'center' });
-      doc.text('DRUVAM', colPositions[2] + 2, yPosition - 0.8, { align: 'center' });
-      doc.text('SPADIKAM', colPositions[3] + 2, yPosition - 0.8, { align: 'center' });
-      doc.text('TOTAL', colPositions[4] + 2, yPosition - 0.8, { align: 'center' });
+      // Header text - centered in each column
+      doc.text('PRODUCT', colPositions[0] + 1, yPosition - 0.5);
+      doc.text('WAREHOUSE', colPositions[1] + colWidths.warehouse / 2 - 3, yPosition - 0.5);
+      doc.text('DRUVAM', colPositions[2] + colWidths.druvam / 2 - 2.5, yPosition - 0.5);
+      doc.text('SPADIKAM', colPositions[3] + colWidths.spadikam / 2 - 3, yPosition - 0.5);
+      doc.text('TOTAL', colPositions[4] + colWidths.total / 2 - 2, yPosition - 0.5);
 
       yPosition += headerRowHeight;
 
@@ -312,19 +314,19 @@ export default function StockInsightPage() {
 
       filteredData.forEach((item, idx) => {
         // Check if we need a new page
-        if (yPosition + rowHeight > pageHeight - 16) {
+        if (yPosition + rowHeight > pageHeight - 14) {
           // Add footer before new page
           doc.setDrawColor(33, 150, 243);
-          doc.setLineWidth(0.4);
-          doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+          doc.setLineWidth(0.3);
+          doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
           
           doc.setFont('Helvetica', 'italic');
-          doc.setFontSize(6.5);
+          doc.setFontSize(6);
           doc.setTextColor(100, 100, 100);
           doc.text(
             'This is a computer generated report based on the data available within the system.',
             pageWidth / 2,
-            pageHeight - 8,
+            pageHeight - 7,
             { align: 'center' }
           );
 
@@ -333,23 +335,23 @@ export default function StockInsightPage() {
 
           // Repeat header on new page
           doc.setFont('Helvetica', 'bold');
-          doc.setFontSize(7.5);
+          doc.setFontSize(8);
           doc.setTextColor(255, 255, 255);
           doc.setFillColor(33, 150, 243);
-          doc.rect(margin, yPosition - headerRowHeight + 0.5, tableWidth, headerRowHeight, 'F');
+          doc.rect(margin, yPosition - headerRowHeight + 0.2, tableWidth, headerRowHeight, 'F');
 
-          // Draw vertical separators
-          doc.setDrawColor(33, 150, 243);
-          doc.setLineWidth(0.3);
-          for (let i = 1; i < 5; i++) {
-            doc.line(colPositions[i], yPosition - headerRowHeight + 0.5, colPositions[i], yPosition + 0.5);
-          }
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.2);
+          doc.line(colPositions[1], yPosition - headerRowHeight + 0.2, colPositions[1], yPosition + 0.2);
+          doc.line(colPositions[2], yPosition - headerRowHeight + 0.2, colPositions[2], yPosition + 0.2);
+          doc.line(colPositions[3], yPosition - headerRowHeight + 0.2, colPositions[3], yPosition + 0.2);
+          doc.line(colPositions[4], yPosition - headerRowHeight + 0.2, colPositions[4], yPosition + 0.2);
 
-          doc.text('PRODUCT', colPositions[0] + 1, yPosition - 0.8);
-          doc.text('WAREHOUSE', colPositions[1] + 2, yPosition - 0.8, { align: 'center' });
-          doc.text('DRUVAM', colPositions[2] + 2, yPosition - 0.8, { align: 'center' });
-          doc.text('SPADIKAM', colPositions[3] + 2, yPosition - 0.8, { align: 'center' });
-          doc.text('TOTAL', colPositions[4] + 2, yPosition - 0.8, { align: 'center' });
+          doc.text('PRODUCT', colPositions[0] + 1, yPosition - 0.5);
+          doc.text('WAREHOUSE', colPositions[1] + colWidths.warehouse / 2 - 3, yPosition - 0.5);
+          doc.text('DRUVAM', colPositions[2] + colWidths.druvam / 2 - 2.5, yPosition - 0.5);
+          doc.text('SPADIKAM', colPositions[3] + colWidths.spadikam / 2 - 3, yPosition - 0.5);
+          doc.text('TOTAL', colPositions[4] + colWidths.total / 2 - 2, yPosition - 0.5);
 
           yPosition += headerRowHeight;
           doc.setFont('Helvetica', 'normal');
@@ -360,42 +362,62 @@ export default function StockInsightPage() {
         // Alternate row colors
         if (idx % 2 === 1) {
           doc.setFillColor(245, 245, 245);
-          doc.rect(margin, yPosition - rowHeight + 0.5, tableWidth, rowHeight, 'F');
+          doc.rect(margin, yPosition - rowHeight + 0.2, tableWidth, rowHeight, 'F');
         }
 
-        // Draw borders with column separators
+        // Draw cell borders
         doc.setDrawColor(200, 200, 200);
         doc.setLineWidth(0.2);
-        doc.rect(margin, yPosition - rowHeight + 0.5, tableWidth, rowHeight);
-        
+        doc.rect(margin, yPosition - rowHeight + 0.2, tableWidth, rowHeight);
+
         // Vertical separators
         for (let i = 1; i < 5; i++) {
-          doc.line(colPositions[i], yPosition - rowHeight + 0.5, colPositions[i], yPosition + 0.5);
+          doc.line(colPositions[i], yPosition - rowHeight + 0.2, colPositions[i], yPosition + 0.2);
         }
 
-        // Product column (alias only, no name in PDF to avoid overlap)
+        // Product column - with wrapping (alias + name)
         doc.setFont('Helvetica', 'bold');
         doc.setFontSize(6.5);
-        const productText = item.product_alias;
-        doc.text(productText, colPositions[0] + 1, yPosition - 1.5);
-
-        // Warehouse (right aligned)
-        doc.setFont('Helvetica', 'normal');
+        const maxProductWidth = colWidths.product - 2;
+        const productAlias = item.product_alias;
+        const productName = item.product_name;
+        
+        // Split text into lines if too long
+        const aliasLines = doc.splitTextToSize(productAlias, maxProductWidth);
+        const nameLines = doc.splitTextToSize(productName, maxProductWidth);
+        
+        let textY = yPosition - 5;
+        doc.setFont('Helvetica', 'bold');
         doc.setFontSize(6.5);
+        aliasLines.forEach((line: string) => {
+          doc.text(line, colPositions[0] + 0.5, textY);
+          textY -= 2;
+        });
+        
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(5.5);
+        nameLines.slice(0, 1).forEach((line: string) => {
+          doc.text(line, colPositions[0] + 0.5, textY);
+          textY -= 1.5;
+        });
+
+        // Warehouse (centered)
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7);
         const warehouseText = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
-        doc.text(warehouseText, colPositions[1] + colWidths.warehouse - 1.5, yPosition - 1.5, { align: 'right' });
+        doc.text(warehouseText, colPositions[1] + colWidths.warehouse / 2, yPosition - 2.5, { align: 'center' });
 
-        // Druvam (right aligned)
+        // Druvam (centered)
         const druvamText = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
-        doc.text(druvamText, colPositions[2] + colWidths.druvam - 1.5, yPosition - 1.5, { align: 'right' });
+        doc.text(druvamText, colPositions[2] + colWidths.druvam / 2, yPosition - 2.5, { align: 'center' });
 
-        // Spadikam (right aligned)
+        // Spadikam (centered)
         const spadikamText = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
-        doc.text(spadikamText, colPositions[3] + colWidths.spadikam - 1.5, yPosition - 1.5, { align: 'right' });
+        doc.text(spadikamText, colPositions[3] + colWidths.spadikam / 2, yPosition - 2.5, { align: 'center' });
 
         // Total (right aligned)
         const totalText = `${(item.total_quantity_ml / 1000).toFixed(2)}L`;
-        doc.text(totalText, colPositions[4] + colWidths.total - 1.5, yPosition - 1.5, { align: 'right' });
+        doc.text(totalText, colPositions[4] + colWidths.total - 1, yPosition - 2.5, { align: 'right' });
 
         yPosition += rowHeight;
       });
@@ -405,33 +427,34 @@ export default function StockInsightPage() {
       doc.setFontSize(7);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
-      doc.rect(margin, yPosition - rowHeight + 0.5, tableWidth, rowHeight, 'F');
+      doc.rect(margin, yPosition - rowHeight + 0.2, tableWidth, rowHeight, 'F');
 
       // Vertical separators for totals
-      doc.setDrawColor(33, 150, 243);
-      doc.setLineWidth(0.3);
-      for (let i = 1; i < 5; i++) {
-        doc.line(colPositions[i], yPosition - rowHeight + 0.5, colPositions[i], yPosition + 0.5);
-      }
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.2);
+      doc.line(colPositions[1], yPosition - rowHeight + 0.2, colPositions[1], yPosition + 0.2);
+      doc.line(colPositions[2], yPosition - rowHeight + 0.2, colPositions[2], yPosition + 0.2);
+      doc.line(colPositions[3], yPosition - rowHeight + 0.2, colPositions[3], yPosition + 0.2);
+      doc.line(colPositions[4], yPosition - rowHeight + 0.2, colPositions[4], yPosition + 0.2);
 
-      doc.text('TOTAL', colPositions[0] + 1, yPosition - 1.5);
-      doc.text(`${totals.warehouseBottles} B`, colPositions[1] + colWidths.warehouse - 1.5, yPosition - 1.5, { align: 'right' });
-      doc.text(`${totals.druvamBottles} B | ${totals.druvamPegs} P`, colPositions[2] + colWidths.druvam - 1.5, yPosition - 1.5, { align: 'right' });
-      doc.text(`${totals.spadikamBottles} B | ${totals.spadikamPegs} P`, colPositions[3] + colWidths.spadikam - 1.5, yPosition - 1.5, { align: 'right' });
-      doc.text(`${totals.totalLitres}L`, colPositions[4] + colWidths.total - 1.5, yPosition - 1.5, { align: 'right' });
+      doc.text('TOTAL', colPositions[0] + 1, yPosition - 2.5);
+      doc.text(`${totals.warehouseBottles} B`, colPositions[1] + colWidths.warehouse / 2, yPosition - 2.5, { align: 'center' });
+      doc.text(`${totals.druvamBottles} B | ${totals.druvamPegs} P`, colPositions[2] + colWidths.druvam / 2, yPosition - 2.5, { align: 'center' });
+      doc.text(`${totals.spadikamBottles} B | ${totals.spadikamPegs} P`, colPositions[3] + colWidths.spadikam / 2, yPosition - 2.5, { align: 'center' });
+      doc.text(`${totals.totalLitres}L`, colPositions[4] + colWidths.total - 1, yPosition - 2.5, { align: 'right' });
 
       // ===== FOOTER =====
       doc.setDrawColor(33, 150, 243);
-      doc.setLineWidth(0.4);
-      doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+      doc.setLineWidth(0.3);
+      doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
 
       doc.setFont('Helvetica', 'italic');
-      doc.setFontSize(6.5);
+      doc.setFontSize(6);
       doc.setTextColor(100, 100, 100);
       doc.text(
         'This is a computer generated report based on the data available within the system.',
         pageWidth / 2,
-        pageHeight - 8,
+        pageHeight - 7,
         { align: 'center' }
       );
 
