@@ -331,7 +331,7 @@ export default function StockInsightPage() {
 
       // CATEGORY TABLE HEADER
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
       doc.rect(margin, yPosition, categoryTableWidth, headerHeight, 'F');
@@ -418,39 +418,59 @@ export default function StockInsightPage() {
         yPosition += categoryRowHeight;
       });
 
-      // CATEGORY GRAND TOTALS ROW
+      // CATEGORY GRAND TOTALS ROW (matching product table style - white text on blue background)
+      const categoryTotalsHeight = 7;
+      doc.setFillColor(33, 150, 243);
+      doc.rect(margin, yPosition, categoryTableWidth, categoryTotalsHeight, 'F');
+
+      // Draw vertical lines
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.2);
+      doc.line(categoryCol.warehouse, yPosition, categoryCol.warehouse, yPosition + categoryTotalsHeight);
+      doc.line(categoryCol.druvam, yPosition, categoryCol.druvam, yPosition + categoryTotalsHeight);
+      doc.line(categoryCol.spadikam, yPosition, categoryCol.spadikam, yPosition + categoryTotalsHeight);
+      doc.line(categoryCol.total, yPosition, categoryCol.total, yPosition + categoryTotalsHeight);
+
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text('TOTAL', categoryCol.category + 1, yPosition + categoryTotalsHeight / 2 + 1.2, { align: 'left' });
+
+      // Warehouse total (BOLD, 7pt, white, STRICTLY right-aligned)
       doc.setFont('Courier', 'bold');
       doc.setFontSize(7);
       doc.setTextColor(255, 255, 255);
-      doc.setFillColor(33, 150, 243);
-      const categoryTotalsHeight = 7;
-      doc.rect(margin, yPosition, categoryTableWidth, categoryTotalsHeight, 'F');
-
-      const totalsCenterY = yPosition + categoryTotalsHeight / 2;
-
-      doc.text('TOTAL', categoryCol.category + 1, totalsCenterY, { align: 'left' });
-
-      // Warehouse total
       const categoryTotalWarehouseWord = totals.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const categoryTotalWarehouseFullDisplay = totals.warehouseBottles + ' ' + categoryTotalWarehouseWord;
-      doc.text(categoryTotalWarehouseFullDisplay, categoryCol.warehouse + categoryColWidth.warehouse - 1, totalsCenterY, { align: 'right' });
+      doc.text(categoryTotalWarehouseFullDisplay, categoryCol.warehouse + categoryColWidth.warehouse - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
 
-      // Druvam total (2-row)
+      // Druvam total (BOLD, 7pt, white, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
       const categoryTotalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const categoryTotalDruvamBottleFullDisplay = totals.druvamBottles + ' ' + categoryTotalDruvamWord;
-      const categoryTotalDruvamPegsFullDisplay = totals.druvamPegs.toFixed(2) + ' PEGS';
-      doc.text(categoryTotalDruvamBottleFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, totalsCenterY - 1.5, { align: 'right' });
-      doc.text(categoryTotalDruvamPegsFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, totalsCenterY + 1.5, { align: 'right' });
+      doc.text(categoryTotalDruvamBottleFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, yPosition + categoryTotalsHeight / 2 - 1.5, { align: 'right' });
 
-      // Spadikam total (2-row)
+      const categoryTotalDruvamPegsFullDisplay = totals.druvamPegs.toFixed(2) + ' PEGS';
+      doc.text(categoryTotalDruvamPegsFullDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, yPosition + categoryTotalsHeight / 2 + 1.5, { align: 'right' });
+
+      // Spadikam total (BOLD, 7pt, white, 2-row format, STRICTLY right-aligned, CENTERED VERTICALLY)
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
       const categoryTotalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const categoryTotalSpadikamBottleFullDisplay = totals.spadikamBottles + ' ' + categoryTotalSpadikamWord;
-      const categoryTotalSpadikamPegsFullDisplay = totals.spadikamPegs.toFixed(2) + ' PEGS';
-      doc.text(categoryTotalSpadikamBottleFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, totalsCenterY - 1.5, { align: 'right' });
-      doc.text(categoryTotalSpadikamPegsFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, totalsCenterY + 1.5, { align: 'right' });
+      doc.text(categoryTotalSpadikamBottleFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, yPosition + categoryTotalsHeight / 2 - 1.5, { align: 'right' });
 
-      // Total litres
-      doc.text(totals.totalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, totalsCenterY, { align: 'right' });
+      const categoryTotalSpadikamPegsFullDisplay = totals.spadikamPegs.toFixed(2) + ' PEGS';
+      doc.text(categoryTotalSpadikamPegsFullDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, yPosition + categoryTotalsHeight / 2 + 1.5, { align: 'right' });
+
+      // Total (BOLD, 7pt, white, STRICTLY right-aligned)
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
+      doc.text(totals.totalLitres + ' LITRE', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2, { align: 'right' });
 
       yPosition += categoryTotalsHeight + 5;
 
