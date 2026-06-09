@@ -572,16 +572,16 @@ export default function StockInsightPage() {
         // Generate pie chart
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = 300;
-          canvas.height = 200;
+          canvas.width = 600;
+          canvas.height = 400;
           
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Canvas context not available');
 
           // Draw pie chart manually
-          const centerX = 80;
-          const centerY = 80;
-          const radius = 50;
+          const centerX = 160;
+          const centerY = 160;
+          const radius = 100;
           let currentAngle = -Math.PI / 2; // Start from top
 
           // Draw pie slices
@@ -598,15 +598,15 @@ export default function StockInsightPage() {
 
             // Draw border
             ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 3;
             ctx.stroke();
 
             currentAngle += sliceAngle;
           });
 
           // Draw legend
-          let legendY = 20;
-          ctx.font = '11px Courier';
+          let legendY = 40;
+          ctx.font = 'bold 13px Courier';
           ctx.fillStyle = '#000';
           
           chartData.forEach((item) => {
@@ -614,20 +614,21 @@ export default function StockInsightPage() {
             
             // Color box
             ctx.fillStyle = item.color;
-            ctx.fillRect(160, legendY - 8, 10, 10);
+            ctx.fillRect(320, legendY - 10, 15, 15);
             
             // Label
             ctx.fillStyle = '#000';
-            ctx.fillText(`${item.name} (${percentage}%)`, 175, legendY);
-            legendY += 15;
+            ctx.font = '12px Courier';
+            ctx.fillText(`${item.name} (${percentage}%)`, 340, legendY);
+            legendY += 30;
           });
 
           // Convert canvas to image
           const chartImage = canvas.toDataURL('image/png');
           
-          // Calculate chart position (half-width, centered)
-          const chartWidth = 90;
-          const chartHeight = 60;
+          // Calculate chart position (half-width, centered) - DOUBLED SIZE
+          const chartWidth = 180;
+          const chartHeight = 120;
           const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
           
           // Add chart to PDF
