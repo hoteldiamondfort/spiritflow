@@ -58,7 +58,6 @@ export default function StockInsightPage() {
     try {
       setLoading(true);
 
-      // Fetch both products and stock data
       const [productsRes, stockRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
           headers: { 'Content-Type': 'application/json' }
@@ -369,13 +368,12 @@ export default function StockInsightPage() {
         </div>
       </DashboardLayout>
 
-      {/* Print Preview Modal */}
+      {/* Professional Print Preview Modal */}
       {showPrintPreview && (
-        <PrintPreviewModal
+        <ProfessionalPrintModal
           filteredData={filteredData}
           totals={totals}
-          selectedCategory={selectedCategory}
-          searchQuery={searchQuery}
+          user={user}
           convertFromML={convertFromML}
           getStockDisplay={getStockDisplay}
           onClose={() => setShowPrintPreview(false)}
@@ -385,17 +383,18 @@ export default function StockInsightPage() {
   );
 }
 
-function PrintPreviewModal({
+function ProfessionalPrintModal({
   filteredData,
   totals,
-  selectedCategory,
-  searchQuery,
+  user,
   convertFromML,
   getStockDisplay,
   onClose
 }: any) {
+  const reportDate = new Date().toLocaleDateString('en-IN');
+  const reportTime = new Date().toLocaleTimeString('en-IN');
+
   useEffect(() => {
-    // Trigger print dialog when modal opens
     setTimeout(() => {
       window.print();
     }, 500);
@@ -403,104 +402,177 @@ function PrintPreviewModal({
 
   return (
     <div style={printStyles.printContainer}>
-      {/* Close button - only visible on screen, not on print */}
+      {/* Close button - only visible on screen */}
       <div style={printStyles.closeButtonContainer}>
         <button onClick={onClose} style={printStyles.closeButton}>✕ CLOSE</button>
       </div>
 
-      {/* Print Content */}
+      {/* Print Content - A4 Professional Format */}
       <div style={printStyles.reportWrapper}>
-        <div style={printStyles.header}>
-          <h1 style={printStyles.title}>STOCK INSIGHT REPORT</h1>
-          <p style={printStyles.meta}>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
-          <p style={printStyles.meta}>Time: {new Date().toLocaleTimeString('en-IN')}</p>
-          {selectedCategory !== 'all' && <p style={printStyles.meta}>Category: {selectedCategory}</p>}
-          {searchQuery && <p style={printStyles.meta}>Search: {searchQuery}</p>}
+        
+        {/* ===== HEADER SECTION ===== */}
+        <div style={printStyles.headerSection}>
+          <div style={printStyles.hotelName}>HOTEL DIAMOND FORT</div>
+          <div style={printStyles.reportTitle}>CONSOLIDATED STOCK REPORT</div>
         </div>
 
+        {/* ===== REPORT METADATA ===== */}
+        <div style={printStyles.metadataSection}>
+          <div style={printStyles.metadataRow}>
+            <div style={printStyles.metadataLabel}>Date:</div>
+            <div style={printStyles.metadataValue}>{reportDate}</div>
+            <div style={printStyles.metadataLabel}>Report Type:</div>
+            <div style={printStyles.metadataValue}>Current</div>
+          </div>
+          <div style={printStyles.metadataRow}>
+            <div style={printStyles.metadataLabel}>Time:</div>
+            <div style={printStyles.metadataValue}>{reportTime}</div>
+            <div style={printStyles.metadataLabel}>Prepared by:</div>
+            <div style={printStyles.metadataValue}>{user?.name || 'System User'}</div>
+          </div>
+        </div>
+
+        {/* ===== SEPARATOR LINE ===== */}
+        <div style={printStyles.separatorLine}></div>
+
+        {/* ===== TABLE ===== */}
         <table style={printStyles.table}>
           <thead>
-            <tr style={printStyles.headerRow}>
-              <th style={printStyles.th}>PRODUCT</th>
-              <th style={printStyles.th}>WAREHOUSE</th>
-              <th style={printStyles.th}>DRUVAM</th>
-              <th style={printStyles.th}>SPADIKAM</th>
-              <th style={{...printStyles.th, textAlign: 'right'}}>TOTAL</th>
+            <tr style={printStyles.tableHeaderRow}>
+              <th style={{...printStyles.th, width: '28%', textAlign: 'left'}}>PRODUCT</th>
+              <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>WAREHOUSE</th>
+              <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>DRUVAM</th>
+              <th style={{...printStyles.th, width: '18%', textAlign: 'center'}}>SPADIKAM</th>
+              <th style={{...printStyles.th, width: '18%', textAlign: 'right'}}>TOTAL</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.map((item: any, idx: number) => (
-              <tr key={idx} style={printStyles.row}>
-                <td style={printStyles.td}>
-                  <div style={{fontWeight: 'bold'}}>{item.product_alias}</div>
-                  <div style={{fontSize: '9pt', color: '#666', marginTop: '2px'}}>{item.product_name}</div>
-                  <div style={{fontSize: '8pt', color: '#999', marginTop: '2px'}}>{item.category_name}</div>
+              <tr key={idx} style={printStyles.tableRow}>
+                <td style={{...printStyles.td, textAlign: 'left'}}>
+                  <div style={printStyles.productAlias}>{item.product_alias}</div>
+                  <div style={printStyles.productName}>{item.product_name}</div>
+                  <div style={printStyles.productCategory}>{item.category_name}</div>
                 </td>
-                <td style={printStyles.td}>
+                <td style={{...printStyles.td, textAlign: 'center'}}>
                   {(() => {
                     const { bottles } = convertFromML(item.breakdown.warehouse, item.ml_per_bottle);
-                    return `${bottles} Bottles`;
+                    return `${bottles}`;
                   })()}
                 </td>
-                <td style={printStyles.td}>{getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}</td>
-                <td style={printStyles.td}>{getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}</td>
-                <td style={{...printStyles.td, textAlign: 'right'}}>{(item.total_quantity_ml / 1000).toFixed(2)}L</td>
+                <td style={{...printStyles.td, textAlign: 'center'}}>
+                  {getStockDisplay(item.breakdown.druvam, item.ml_per_bottle)}
+                </td>
+                <td style={{...printStyles.td, textAlign: 'center'}}>
+                  {getStockDisplay(item.breakdown.spadikam, item.ml_per_bottle)}
+                </td>
+                <td style={{...printStyles.td, textAlign: 'right'}}>
+                  {(item.total_quantity_ml / 1000).toFixed(2)}L
+                </td>
               </tr>
             ))}
-            {/* Totals Row */}
+            
+            {/* ===== TOTALS ROW ===== */}
             <tr style={printStyles.totalRow}>
-              <td style={printStyles.td}>TOTAL</td>
-              <td style={printStyles.td}>{totals.warehouseBottles} Bottles</td>
-              <td style={printStyles.td}>{totals.druvamBottles} Bottles | {totals.druvamPegs} Pegs</td>
-              <td style={printStyles.td}>{totals.spadikamBottles} Bottles | {totals.spadikamPegs} Pegs</td>
-              <td style={{...printStyles.td, textAlign: 'right'}}>{totals.totalLitres}L</td>
+              <td style={{...printStyles.td, textAlign: 'left', fontWeight: 'bold'}}>TOTAL</td>
+              <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
+                {totals.warehouseBottles}
+              </td>
+              <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
+                {totals.druvamBottles} | {totals.druvamPegs}
+              </td>
+              <td style={{...printStyles.td, textAlign: 'center', fontWeight: 'bold'}}>
+                {totals.spadikamBottles} | {totals.spadikamPegs}
+              </td>
+              <td style={{...printStyles.td, textAlign: 'right', fontWeight: 'bold'}}>
+                {totals.totalLitres}L
+              </td>
             </tr>
           </tbody>
         </table>
+
+        {/* ===== FOOTER SEPARATOR ===== */}
+        <div style={printStyles.footerSeparatorLine}></div>
+
+        {/* ===== FOOTER NOTE ===== */}
+        <div style={printStyles.footerNote}>
+          This is a computer generated report based on the data available within the system.
+        </div>
+
       </div>
 
+      {/* ===== PRINT CSS ===== */}
       <style>{`
         @media print {
+          * {
+            margin: 0;
+            padding: 0;
+          }
+
           body, html {
             margin: 0;
             padding: 0;
             background: white;
+            width: 100%;
+            height: 100%;
           }
-          
-          .no-print {
-            display: none !important;
-          }
-          
-          @page {
-            size: A4;
-            margin: 0.4in;
-          }
-          
+
           .print-container {
             display: block !important;
             margin: 0;
             padding: 0;
+            background: white;
           }
-          
-          table {
-            page-break-inside: avoid;
+
+          @page {
+            size: A4;
+            margin: 0.5in 0.5in 0.5in 0.5in;
+          }
+
+          .report-wrapper {
+            background: white;
+            padding: 0;
+            margin: 0;
             width: 100%;
+            font-family: 'Arial', sans-serif;
           }
-          
+
+          .close-button-container {
+            display: none !important;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            page-break-inside: avoid;
+          }
+
           thead {
             display: table-header-group;
           }
-          
+
           tr {
             page-break-inside: avoid;
           }
-        }
-        
-        @media screen {
-          .no-print {
-            display: block;
+
+          .header-section {
+            page-break-after: avoid;
           }
-          
+
+          .metadata-section {
+            page-break-after: avoid;
+          }
+
+          .footer-note {
+            page-break-before: avoid;
+          }
+        }
+
+        @media screen {
+          .close-button-container {
+            display: flex;
+          }
+
           .print-container {
             position: fixed;
             top: 0;
@@ -664,11 +736,13 @@ const printStyles = {
     overflowY: 'auto' as const,
     padding: '20px',
   },
+
   closeButtonContainer: {
     display: 'flex',
     justifyContent: 'flex-end',
     marginBottom: '20px',
   },
+
   closeButton: {
     padding: '10px 16px',
     fontSize: '12px',
@@ -677,61 +751,148 @@ const printStyles = {
     backgroundColor: '#e0e0e0',
     border: 'none',
     cursor: 'pointer',
-    fontFamily: '"Courier New", Courier, monospace',
+    fontFamily: 'Arial, sans-serif',
     borderRadius: '3px',
   } as React.CSSProperties,
+
   reportWrapper: {
     backgroundColor: '#ffffff',
-    padding: '40px',
+    padding: '40px 50px',
     marginBottom: '40px',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
     minHeight: '100vh',
+    fontFamily: 'Arial, sans-serif',
+    color: '#000',
   } as React.CSSProperties,
-  header: {
+
+  // ===== HEADER SECTION =====
+  headerSection: {
     textAlign: 'center' as const,
-    marginBottom: '30px',
-    paddingBottom: '20px',
+    marginBottom: '20px',
+    paddingBottom: '15px',
     borderBottom: '2px solid #000',
   } as React.CSSProperties,
-  title: {
-    fontSize: '18pt',
+
+  hotelName: {
+    fontSize: '16pt',
     fontWeight: 'bold',
-    margin: '0 0 10px 0',
-    fontFamily: '"Courier New", Courier, monospace',
+    letterSpacing: '0.5px',
+    marginBottom: '8px',
+    fontFamily: 'Arial, sans-serif',
   } as React.CSSProperties,
-  meta: {
+
+  reportTitle: {
+    fontSize: '14pt',
+    fontWeight: 'bold',
+    letterSpacing: '0.3px',
+    fontFamily: 'Arial, sans-serif',
+  } as React.CSSProperties,
+
+  // ===== METADATA SECTION =====
+  metadataSection: {
+    marginBottom: '20px',
     fontSize: '10pt',
-    margin: '4px 0',
-    color: '#333',
-    fontFamily: '"Courier New", Courier, monospace',
+    fontFamily: 'Arial, sans-serif',
   } as React.CSSProperties,
+
+  metadataRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '4px',
+    flexWrap: 'wrap',
+  } as React.CSSProperties,
+
+  metadataLabel: {
+    fontWeight: 'bold',
+    marginRight: '10px',
+    width: '80px',
+  } as React.CSSProperties,
+
+  metadataValue: {
+    flex: 1,
+    marginRight: '40px',
+  } as React.CSSProperties,
+
+  // ===== SEPARATOR LINE =====
+  separatorLine: {
+    height: '1px',
+    backgroundColor: '#ccc',
+    marginBottom: '15px',
+  } as React.CSSProperties,
+
+  // ===== TABLE STYLES =====
   table: {
     width: '100%',
     borderCollapse: 'collapse' as const,
-    fontSize: '10pt',
-    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: '9pt',
+    fontFamily: 'Arial, sans-serif',
+    marginBottom: '15px',
   } as React.CSSProperties,
-  headerRow: {
+
+  tableHeaderRow: {
     backgroundColor: '#f0f0f0',
+    borderTop: '2px solid #000',
     borderBottom: '2px solid #000',
   } as React.CSSProperties,
+
   th: {
-    padding: '8px',
+    padding: '10px 8px',
     textAlign: 'left' as const,
     fontWeight: 'bold',
-    borderBottom: '1px solid #000',
+    fontSize: '9pt',
+    fontFamily: 'Arial, sans-serif',
   } as React.CSSProperties,
-  row: {
-    borderBottom: '1px solid #ccc',
+
+  tableRow: {
+    borderBottom: '1px solid #ddd',
   } as React.CSSProperties,
+
+  td: {
+    padding: '8px',
+    fontSize: '9pt',
+    fontFamily: 'Arial, sans-serif',
+  } as React.CSSProperties,
+
+  productAlias: {
+    fontWeight: 'bold',
+    fontSize: '9pt',
+    marginBottom: '2px',
+  } as React.CSSProperties,
+
+  productName: {
+    fontSize: '8pt',
+    color: '#333',
+    marginBottom: '2px',
+  } as React.CSSProperties,
+
+  productCategory: {
+    fontSize: '7.5pt',
+    color: '#666',
+  } as React.CSSProperties,
+
+  // ===== TOTALS ROW =====
   totalRow: {
     backgroundColor: '#f0f0f0',
     fontWeight: 'bold',
     borderTop: '2px solid #000',
-    borderBottom: '1px solid #000',
+    borderBottom: '2px solid #000',
   } as React.CSSProperties,
-  td: {
-    padding: '8px',
-    borderBottom: '1px solid #ccc',
+
+  // ===== FOOTER SEPARATOR =====
+  footerSeparatorLine: {
+    height: '1px',
+    backgroundColor: '#ccc',
+    marginTop: '15px',
+    marginBottom: '10px',
+  } as React.CSSProperties,
+
+  // ===== FOOTER NOTE =====
+  footerNote: {
+    fontSize: '8pt',
+    color: '#666',
+    textAlign: 'center' as const,
+    fontStyle: 'italic',
+    paddingTop: '10px',
+    fontFamily: 'Arial, sans-serif',
   } as React.CSSProperties,
 };
