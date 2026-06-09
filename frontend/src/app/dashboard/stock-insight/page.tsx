@@ -290,7 +290,144 @@ export default function StockInsightPage() {
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 3;
 
-      // ===== TABLE CONFIG (Product: 40%, Stock columns: 15% each = 60%) =====
+      // ===== CATEGORY-WISE SUMMARY TABLE =====
+      // Calculate category totals
+      const categoryTotals: { [key: string]: { warehouse: number; druvam: number; spadikam: number; total: number } } = {};
+      
+      filteredData.forEach((item) => {
+        const category = item.category_name || 'UNCATEGORIZED';
+        if (!categoryTotals[category]) {
+          categoryTotals[category] = { warehouse: 0, druvam: 0, spadikam: 0, total: 0 };
+        }
+        categoryTotals[category].warehouse += item.breakdown.warehouse;
+        categoryTotals[category].druvam += item.breakdown.druvam;
+        categoryTotals[category].spadikam += item.breakdown.spadikam;
+        categoryTotals[category].total += item.total_quantity_ml;
+      });
+
+      // Sort categories alphabetically
+      const sortedCategories = Object.keys(categoryTotals).sort();
+
+      // TABLE CONFIG FOR CATEGORY TABLE (Category: 40%, Stock columns: 15% each)
+      const categoryTableWidth = pageWidth - margin * 2;
+      const categoryStockWidth = categoryTableWidth * 0.6;
+      const categoryColWidth = {
+        category: categoryTableWidth * 0.4,
+        warehouse: categoryStockWidth / 4,
+        druvam: categoryStockWidth / 4,
+        spadikam: categoryStockWidth / 4,
+        total: categoryStockWidth / 4
+      };
+
+      const categoryCol = {
+        category: margin,
+        warehouse: margin + categoryColWidth.category,
+        druvam: margin + categoryColWidth.category + categoryColWidth.warehouse,
+        spadikam: margin + categoryColWidth.category + categoryColWidth.warehouse + categoryColWidth.druvam,
+        total: margin + categoryColWidth.category + categoryColWidth.warehouse + categoryColWidth.druvam + categoryColWidth.spadikam
+      };
+
+      const headerHeight = 5;
+
+      // CATEGORY TABLE HEADER
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.setFillColor(33, 150, 243);
+      doc.rect(margin, yPosition, categoryTableWidth, headerHeight, 'F');
+
+      // Draw vertical lines
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.2);
+      doc.line(categoryCol.warehouse, yPosition, categoryCol.warehouse, yPosition + headerHeight);
+      doc.line(categoryCol.druvam, yPosition, categoryCol.druvam, yPosition + headerHeight);
+      doc.line(categoryCol.spadikam, yPosition, categoryCol.spadikam, yPosition + headerHeight);
+      doc.line(categoryCol.total, yPosition, categoryCol.total, yPosition + headerHeight);
+
+      // Header text
+      doc.text('CATEGORY', categoryCol.category + 1, yPosition + 3.5);
+      doc.text('WAREHOUSE', categoryCol.warehouse + categoryColWidth.warehouse / 2, yPosition + 3.5, { align: 'center' });
+      doc.text('DRUVAM', categoryCol.druvam + categoryColWidth.druvam / 2, yPosition + 3.5, { align: 'center' });
+      doc.text('SPADIKAM', categoryCol.spadikam + categoryColWidth.spadikam / 2, yPosition + 3.5, { align: 'center' });
+      doc.text('TOTAL', categoryCol.total + categoryColWidth.total / 2, yPosition + 3.5, { align: 'center' });
+
+      yPosition += headerHeight;
+
+      // CATEGORY DATA ROWS
+      doc.setFont('Courier', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(0, 0, 0);
+
+      const categoryRowHeight = 6;
+
+      sortedCategories.forEach((category, index) => {
+        // Alternate row shading
+        if (index % 2 === 1) {
+          doc.setFillColor(245, 245, 245);
+          doc.rect(margin, yPosition, categoryTableWidth, categoryRowHeight, 'F');
+        }
+
+        const data = categoryTotals[category];
+        const warehouseConv = convertFromML(data.warehouse, 60); // Assuming 60ml per bottle for warehouse
+        const druvamConv = convertFromML(data.druvam, 60);
+        const spadikamConv = convertFromML(data.spadikam, 60);
+        const totalLitres = (data.total / 1000).toFixed(2);
+
+        const categoryCenterY = yPosition + categoryRowHeight / 2;
+
+        // Category name
+        doc.setFont('Courier', 'normal');
+        doc.setFontSize(7);
+        doc.text(category, categoryCol.category + 1, categoryCenterY, { align: 'left' });
+
+        // Warehouse
+        const warehouseDisplay = warehouseConv.bottles + ' BOTTLES';
+        doc.text(warehouseDisplay, categoryCol.warehouse + categoryColWidth.warehouse - 1, categoryCenterY, { align: 'right' });
+
+        // Druvam
+        const druvamDisplay = druvamConv.bottles + ' B | ' + druvamConv.pegs.toFixed(2) + ' P';
+        doc.text(druvamDisplay, categoryCol.druvam + categoryColWidth.druvam - 1, categoryCenterY, { align: 'right' });
+
+        // Spadikam
+        const spadikamDisplay = spadikamConv.bottles + ' B | ' + spadikamConv.pegs.toFixed(2) + ' P';
+        doc.text(spadikamDisplay, categoryCol.spadikam + categoryColWidth.spadikam - 1, categoryCenterY, { align: 'right' });
+
+        // Total
+        doc.setFont('Courier', 'bold');
+        doc.text(totalLitres + ' L', categoryCol.total + categoryColWidth.total - 1, categoryCenterY, { align: 'right' });
+
+        yPosition += categoryRowHeight;
+      });
+
+      // CATEGORY GRAND TOTALS ROW
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
+      doc.setFillColor(33, 150, 243);
+      const categoryTotalsHeight = 6;
+      doc.rect(margin, yPosition, categoryTableWidth, categoryTotalsHeight, 'F');
+
+      doc.text('TOTAL', categoryCol.category + 1, yPosition + categoryTotalsHeight / 2 + 0.5, { align: 'left' });
+      doc.text(totals.warehouseBottles + ' BOTTLES', categoryCol.warehouse + categoryColWidth.warehouse - 1, yPosition + categoryTotalsHeight / 2 + 0.5, { align: 'right' });
+      doc.text(totals.druvamBottles + ' B | ' + totals.druvamPegs.toFixed(2) + ' P', categoryCol.druvam + categoryColWidth.druvam - 1, yPosition + categoryTotalsHeight / 2 + 0.5, { align: 'right' });
+      doc.text(totals.spadikamBottles + ' B | ' + totals.spadikamPegs.toFixed(2) + ' P', categoryCol.spadikam + categoryColWidth.spadikam - 1, yPosition + categoryTotalsHeight / 2 + 0.5, { align: 'right' });
+      doc.setFont('Courier', 'bold');
+      doc.text(totals.totalLitres + ' L', categoryCol.total + categoryColWidth.total - 1, yPosition + categoryTotalsHeight / 2 + 0.5, { align: 'right' });
+
+      yPosition += categoryTotalsHeight + 5;
+
+      // ===== PRODUCT-WISE DETAILS SUBHEADING =====
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+      doc.text('PRODUCT-WISE DETAILS', margin, yPosition);
+      yPosition += 5;
+
+      // ===== SEPARATOR =====
+      doc.setDrawColor(33, 150, 243);
+      doc.setLineWidth(0.3);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 3;
       const tableWidth = pageWidth - margin * 2;
       const stockColumnsWidth = tableWidth * 0.6;
       const colWidth = {
@@ -309,22 +446,22 @@ export default function StockInsightPage() {
         total: margin + colWidth.product + colWidth.warehouse + colWidth.druvam + colWidth.spadikam
       };
 
-      const headerHeight = 5;
+      const productHeaderHeight = 5;
 
       // ===== HEADER ROW =====
       doc.setFont('Courier', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
       doc.setFillColor(33, 150, 243);
-      doc.rect(margin, yPosition, tableWidth, headerHeight, 'F');
+      doc.rect(margin, yPosition, tableWidth, productHeaderHeight, 'F');
 
       // Draw vertical lines
       doc.setDrawColor(255, 255, 255);
       doc.setLineWidth(0.2);
-      doc.line(col.warehouse, yPosition, col.warehouse, yPosition + headerHeight);
-      doc.line(col.druvam, yPosition, col.druvam, yPosition + headerHeight);
-      doc.line(col.spadikam, yPosition, col.spadikam, yPosition + headerHeight);
-      doc.line(col.total, yPosition, col.total, yPosition + headerHeight);
+      doc.line(col.warehouse, yPosition, col.warehouse, yPosition + productHeaderHeight);
+      doc.line(col.druvam, yPosition, col.druvam, yPosition + productHeaderHeight);
+      doc.line(col.spadikam, yPosition, col.spadikam, yPosition + productHeaderHeight);
+      doc.line(col.total, yPosition, col.total, yPosition + productHeaderHeight);
 
       // Header text
       doc.text('PRODUCT', col.product + 1, yPosition + 3.5);
@@ -333,7 +470,7 @@ export default function StockInsightPage() {
       doc.text('SPADIKAM', col.spadikam + colWidth.spadikam / 2, yPosition + 3.5, { align: 'center' });
       doc.text('TOTAL', col.total + colWidth.total / 2, yPosition + 3.5, { align: 'center' });
 
-      yPosition += headerHeight;
+      yPosition += productHeaderHeight;
 
       // ===== DATA ROWS =====
       doc.setFont('Courier', 'normal');
@@ -378,14 +515,14 @@ export default function StockInsightPage() {
           doc.setFontSize(9);
           doc.setTextColor(255, 255, 255);
           doc.setFillColor(33, 150, 243);
-          doc.rect(margin, yPosition, tableWidth, headerHeight, 'F');
+          doc.rect(margin, yPosition, tableWidth, productHeaderHeight, 'F');
 
           doc.setDrawColor(255, 255, 255);
           doc.setLineWidth(0.2);
-          doc.line(col.warehouse, yPosition, col.warehouse, yPosition + headerHeight);
-          doc.line(col.druvam, yPosition, col.druvam, yPosition + headerHeight);
-          doc.line(col.spadikam, yPosition, col.spadikam, yPosition + headerHeight);
-          doc.line(col.total, yPosition, col.total, yPosition + headerHeight);
+          doc.line(col.warehouse, yPosition, col.warehouse, yPosition + productHeaderHeight);
+          doc.line(col.druvam, yPosition, col.druvam, yPosition + productHeaderHeight);
+          doc.line(col.spadikam, yPosition, col.spadikam, yPosition + productHeaderHeight);
+          doc.line(col.total, yPosition, col.total, yPosition + productHeaderHeight);
 
           doc.text('PRODUCT', col.product + 1, yPosition + 3.5);
           doc.text('WAREHOUSE', col.warehouse + colWidth.warehouse / 2, yPosition + 3.5, { align: 'center' });
@@ -393,7 +530,7 @@ export default function StockInsightPage() {
           doc.text('SPADIKAM', col.spadikam + colWidth.spadikam / 2, yPosition + 3.5, { align: 'center' });
           doc.text('TOTAL', col.total + colWidth.total / 2, yPosition + 3.5, { align: 'center' });
 
-          yPosition += headerHeight;
+          yPosition += productHeaderHeight;
           doc.setFont('Courier', 'normal');
           doc.setFontSize(8);
           doc.setTextColor(0, 0, 0);
