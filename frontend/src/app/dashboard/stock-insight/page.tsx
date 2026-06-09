@@ -634,6 +634,9 @@ export default function StockInsightPage() {
           yPosition += 5;
         }
 
+        // ===== BLANK LINE AFTER CHART =====
+        yPosition += 3;
+
         // ===== TEXT-BASED LEGEND (Below Chart) =====
         // Add legend as styled text with color indicators
         doc.setFont('Courier', 'normal');
