@@ -11,6 +11,7 @@ interface Product {
   product_name: string;
   product_alias: string;
   category_name: string;
+  product_code: string;
   ml_per_bottle: number;
   bottles_per_case: number;
 }
