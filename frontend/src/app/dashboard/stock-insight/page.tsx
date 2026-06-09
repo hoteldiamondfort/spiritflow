@@ -1011,30 +1011,30 @@ export default function StockInsightPage() {
       yPosition += 3;
       yPosition += 3;
 
-      // ===== DISCLAIMER BOX =====
-      const disclaimerBoxY = yPosition;
-      const disclaimerBoxWidth = pageWidth - margin * 2;
+      // ===== DISCLAIMER =====
+      // Disclaimer title
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(0, 0, 0);
+      doc.text('DISCLAIMER', margin, yPosition);
+      yPosition += 3;
+
+      // Blank line after title
+      yPosition += 2;
+
+      // Disclaimer body text
       const disclaimerText = 'THIS IS A CONFIDENTIAL MANAGEMENT INFORMATION SYSTEM (MIS) REPORT OWNED BY HOTEL DIAMOND FORT. ANY UNAUTHORISED USE OF THIS REPORT IS STRICTLY PROHIBITED. HOTEL DIAMOND FORT, ITS MANAGEMENT, OWNERS, STAFFS OR ANY OTHER PERSONS OR INSTITUTIONS RELATED TO HOTEL DIAMOND FORT ARE NOT RESPONSIBLE FOR ANY LOSS OR DAMAGE CAUSED BY UNAUTHORISED USE OF ANY OF THE INFORMATION IN THIS REPORT.';
       
       // Split disclaimer text into lines
-      const disclaimerLines = doc.splitTextToSize(disclaimerText, disclaimerBoxWidth - 4);
-      const lineHeight = 2.5;
-      const disclaimerBoxHeight = disclaimerLines.length * lineHeight + 6; // 3pt padding top and bottom
+      const disclaimerLines = doc.splitTextToSize(disclaimerText, pageWidth - margin * 2);
 
-      // Draw disclaimer box (light gray background)
-      doc.setFillColor(240, 240, 240);
-      doc.setDrawColor(33, 150, 243);
-      doc.setLineWidth(0.5);
-      doc.rect(margin, disclaimerBoxY, disclaimerBoxWidth, disclaimerBoxHeight, 'FD');
-
-      // Write disclaimer text inside box
+      // Write disclaimer body text (left-aligned, normal weight)
       doc.setFont('Courier', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
-      let disclaimerY = disclaimerBoxY + 3;
       disclaimerLines.forEach((line: string) => {
-        doc.text(line, margin + 2, disclaimerY);
-        disclaimerY += lineHeight;
+        doc.text(line, margin, yPosition);
+        yPosition += 2.5;
       });
 
       // ===== FOOTER =====
