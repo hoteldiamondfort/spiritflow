@@ -163,10 +163,10 @@ export default function StockInsightPage() {
     return `${bottles} Bottles`;
   };
 
-  // PDF display (short format)
+  // PDF display (short format with comma separator)
   const getStockDisplayPDF = (ml: number, mlPerBottle: number): string => {
     const { bottles, pegs } = convertFromML(ml, mlPerBottle);
-    return `${bottles} B | ${pegs} P`;
+    return `${bottles} B, ${pegs} P`;
   };
 
   const getWarehouseDisplayPDF = (ml: number, mlPerBottle: number): string => {
@@ -382,8 +382,11 @@ export default function StockInsightPage() {
         doc.line(col.spadikam, yPosition, col.spadikam, yPosition + rowHeight);
         doc.line(col.total, yPosition, col.total, yPosition + rowHeight);
 
-        // Product column: alias (bold) + name (normal) + category (italic)
-        let productY = yPosition + 1.5;
+        // Product column: alias (bold) + name (normal) + category (italic) - VERTICALLY CENTERED
+        const totalProductLines = aliasLines.length + nameLines.length + categoryLines.length;
+        const totalProductHeight = totalProductLines * 2.2;
+        const topPadding = (rowHeight - totalProductHeight) / 2;
+        let productY = yPosition + topPadding + 2.2;
         
         // Alias (bold)
         doc.setFont('Helvetica', 'bold');
@@ -411,21 +414,21 @@ export default function StockInsightPage() {
         });
         doc.setTextColor(0, 0, 0);
 
-        // Warehouse (center)
+        // Warehouse (right-aligned)
         doc.setFont('Helvetica', 'normal');
         doc.setFontSize(7);
         const warehouseText = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
-        doc.text(warehouseText, col.warehouse + colWidth.warehouse / 2, yPosition + rowHeight / 2 + 0.5, { align: 'center' });
+        doc.text(warehouseText, col.warehouse + colWidth.warehouse - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
 
-        // Druvam (center)
+        // Druvam (right-aligned)
         const druvamText = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
-        doc.text(druvamText, col.druvam + colWidth.druvam / 2, yPosition + rowHeight / 2 + 0.5, { align: 'center' });
+        doc.text(druvamText, col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
 
-        // Spadikam (center)
+        // Spadikam (right-aligned)
         const spadikamText = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
-        doc.text(spadikamText, col.spadikam + colWidth.spadikam / 2, yPosition + rowHeight / 2 + 0.5, { align: 'center' });
+        doc.text(spadikamText, col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
 
-        // Total (right) - compact format
+        // Total (right-aligned) - compact format
         const totalText = `${(item.total_quantity_ml / 1000).toFixed(2)}L`;
         doc.text(totalText, col.total + colWidth.total - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
 
@@ -449,10 +452,10 @@ export default function StockInsightPage() {
       doc.line(col.total, yPosition, col.total, yPosition + totalsHeight);
 
       doc.text('TOTAL', col.product + 1, yPosition + 3.5);
-      doc.text(`${totals.warehouseBottles} B`, col.warehouse + colWidth.warehouse / 2, yPosition + 3.5, { align: 'center' });
-      doc.text(`${totals.druvamBottles} B | ${totals.druvamPegs} P`, col.druvam + colWidth.druvam / 2, yPosition + 3.5, { align: 'center' });
-      doc.text(`${totals.spadikamBottles} B | ${totals.spadikamPegs} P`, col.spadikam + colWidth.spadikam / 2, yPosition + 3.5, { align: 'center' });
-      doc.text(`${totals.totalLitres}L`, col.total + colWidth.total / 2, yPosition + 3.5, { align: 'center' });
+      doc.text(`${totals.warehouseBottles} B`, col.warehouse + colWidth.warehouse - 1, yPosition + 3.5, { align: 'right' });
+      doc.text(`${totals.druvamBottles} B, ${totals.druvamPegs} P`, col.druvam + colWidth.druvam - 1, yPosition + 3.5, { align: 'right' });
+      doc.text(`${totals.spadikamBottles} B, ${totals.spadikamPegs} P`, col.spadikam + colWidth.spadikam - 1, yPosition + 3.5, { align: 'right' });
+      doc.text(`${totals.totalLitres}L`, col.total + colWidth.total - 1, yPosition + 3.5, { align: 'right' });
 
       // ===== FOOTER =====
       doc.setDrawColor(33, 150, 243);
