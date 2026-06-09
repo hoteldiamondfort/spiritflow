@@ -575,7 +575,7 @@ export default function StockInsightPage() {
           const dpr = 4;
           const canvas = document.createElement('canvas');
           canvas.width = 800 * dpr;
-          canvas.height = 500 * dpr;
+          canvas.height = 350 * dpr;
           
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Canvas context not available');
@@ -584,9 +584,9 @@ export default function StockInsightPage() {
           ctx.scale(dpr, dpr);
 
           // Draw pie chart with anti-aliasing
-          const centerX = 200;
-          const centerY = 150;
-          const radius = 120;
+          const centerX = 160;
+          const centerY = 100;
+          const radius = 90;
           let currentAngle = -Math.PI / 2; // Start from top
 
           // Draw pie slices with smooth edges
@@ -614,19 +614,22 @@ export default function StockInsightPage() {
             currentAngle += sliceAngle;
           });
 
-          // Draw legend with better formatting
-          let legendY = 50;
+          // Draw legend horizontally at bottom
           ctx.globalAlpha = 1;
           ctx.textBaseline = 'middle';
           
-          chartData.forEach((item) => {
+          // Draw legend horizontally
+          let legendX = 20;
+          const legendY = 270;
+          
+          chartData.forEach((item, index) => {
             const percentage = ((item.value / chartTotal) * 100).toFixed(1);
             const volume = item.value.toFixed(2);
             
             // Color box with rounded corners
             ctx.fillStyle = item.color;
             ctx.beginPath();
-            ctx.roundRect(420, legendY - 12, 20, 20, 3);
+            ctx.roundRect(legendX, legendY - 8, 16, 16, 2);
             ctx.fill();
             
             // Border for color box
@@ -634,33 +637,33 @@ export default function StockInsightPage() {
             ctx.lineWidth = 1;
             ctx.stroke();
             
-            // Label with bold font
+            // Label with font
             ctx.fillStyle = '#000000';
-            ctx.font = 'bold 14px Arial, sans-serif';
-            ctx.fillText(`${item.name}`, 455, legendY - 3);
+            ctx.font = 'bold 11px Arial, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${item.name}`, legendX + 22, legendY);
             
             // Details in smaller font
             ctx.fillStyle = '#666666';
-            ctx.font = '11px Arial, sans-serif';
-            ctx.fillText(`${volume}L (${percentage}%)`, 455, legendY + 10);
+            ctx.font = '9px Arial, sans-serif';
+            ctx.fillText(`${volume}L (${percentage}%)`, legendX + 22, legendY + 11);
             
-            legendY += 55;
+            // Calculate width for next item
+            const itemWidth = 160;
+            legendX += itemWidth;
           });
 
           // Convert canvas to high-quality image
           const chartImage = canvas.toDataURL('image/png', 0.95);
           
-          // Calculate chart position (half-width, centered)
+          // Calculate chart position - CENTERED on page
           const chartWidth = 180;
-          const chartHeight = 112;
+          const chartHeight = 80;
           const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
           
           // Add chart to PDF
           doc.addImage(chartImage, 'PNG', chartX, yPosition, chartWidth, chartHeight);
-          yPosition += chartHeight;
-
-          // Blank line after chart
-          yPosition += 2;
+          yPosition += chartHeight + 2;
         } catch (error) {
           console.error('Error generating pie chart:', error);
           doc.setFont('Courier', 'normal');
@@ -672,6 +675,14 @@ export default function StockInsightPage() {
 
         // Blank line after chart
         yPosition += 3;
+      }
+
+      // ===== FORCE PAGE BREAK BEFORE PRODUCT SECTION =====
+      // Product section must start on new page only
+      if (selectedCategory === 'all') {
+        // Add page break before product section
+        doc.addPage();
+        yPosition = 10;
       }
 
       // ===== SEPARATOR =====
