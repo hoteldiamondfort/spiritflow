@@ -569,13 +569,13 @@ export default function StockInsightPage() {
         // Calculate total for percentages
         const chartTotal = chartData.reduce((sum, item) => sum + item.value, 0);
 
-        // Generate HD quality pie chart
+        // Generate pie chart (half-page diameter only)
         try {
-          // Use 4x resolution for HD quality
+          // Create canvas for pie chart only (small size)
           const dpr = 4;
           const canvas = document.createElement('canvas');
-          canvas.width = 800 * dpr;
-          canvas.height = 350 * dpr;
+          canvas.width = 400 * dpr;
+          canvas.height = 300 * dpr;
           
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Canvas context not available');
@@ -584,19 +584,19 @@ export default function StockInsightPage() {
           ctx.scale(dpr, dpr);
 
           // Draw pie chart with anti-aliasing
-          const centerX = 160;
+          const centerX = 100;
           const centerY = 100;
-          const radius = 90;
-          let currentAngle = -Math.PI / 2; // Start from top
+          const radius = 70;
+          let currentAngle = -Math.PI / 2;
 
-          // Draw pie slices with smooth edges
+          // Draw pie slices
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
           chartData.forEach((item) => {
             const sliceAngle = (item.value / chartTotal) * 2 * Math.PI;
             
-            // Draw slice with shadow effect
+            // Draw slice
             ctx.fillStyle = item.color;
             ctx.globalAlpha = 0.95;
             ctx.beginPath();
@@ -608,62 +608,24 @@ export default function StockInsightPage() {
             // Draw border
             ctx.globalAlpha = 1;
             ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 3;
             ctx.stroke();
 
             currentAngle += sliceAngle;
           });
 
-          // Draw legend horizontally at bottom
-          ctx.globalAlpha = 1;
-          ctx.textBaseline = 'middle';
-          
-          // Draw legend horizontally
-          let legendX = 20;
-          const legendY = 270;
-          
-          chartData.forEach((item, index) => {
-            const percentage = ((item.value / chartTotal) * 100).toFixed(1);
-            const volume = item.value.toFixed(2);
-            
-            // Color box with rounded corners
-            ctx.fillStyle = item.color;
-            ctx.beginPath();
-            ctx.roundRect(legendX, legendY - 8, 16, 16, 2);
-            ctx.fill();
-            
-            // Border for color box
-            ctx.strokeStyle = '#CCC';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            
-            // Label with font
-            ctx.fillStyle = '#000000';
-            ctx.font = 'bold 11px Arial, sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText(`${item.name}`, legendX + 22, legendY);
-            
-            // Details in smaller font
-            ctx.fillStyle = '#666666';
-            ctx.font = '9px Arial, sans-serif';
-            ctx.fillText(`${volume}L (${percentage}%)`, legendX + 22, legendY + 11);
-            
-            // Calculate width for next item
-            const itemWidth = 160;
-            legendX += itemWidth;
-          });
-
-          // Convert canvas to high-quality image
+          // Convert to image
           const chartImage = canvas.toDataURL('image/png', 0.95);
           
-          // Calculate chart position - CENTERED on page
-          const chartWidth = 180;
-          const chartHeight = 80;
+          // Calculate chart position - CENTERED on page (half-page width)
+          const chartWidth = 90;
+          const chartHeight = 67;
           const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
           
           // Add chart to PDF
           doc.addImage(chartImage, 'PNG', chartX, yPosition, chartWidth, chartHeight);
-          yPosition += chartHeight + 2;
+          yPosition += chartHeight + 5;
+
         } catch (error) {
           console.error('Error generating pie chart:', error);
           doc.setFont('Courier', 'normal');
@@ -673,8 +635,49 @@ export default function StockInsightPage() {
           yPosition += 5;
         }
 
-        // Blank line after chart
-        yPosition += 3;
+        // ===== TEXT-BASED LEGEND (Below Chart) =====
+        // Add legend as styled text with color indicators
+        doc.setFont('Courier', 'normal');
+        doc.setFontSize(7);
+        
+        // Display legend in rows (max 4 per row)
+        const colWidth = (pageWidth - margin * 2) / 4;
+        let legendCol = 0;
+        let legendRow = 0;
+        let baseY = yPosition;
+
+        sortedCategoriesForChart.forEach((category, index) => {
+          const volume = categoryTotals[category].totalML / 1000;
+          const percentage = ((volume / chartTotal) * 100).toFixed(1);
+          const color = categoryColorMap[category];
+          
+          // Calculate position
+          const xPos = margin + (legendCol * colWidth) + 2;
+          const yPos = baseY + (legendRow * 6);
+          
+          // Draw color box
+          doc.setFillColor(
+            parseInt(color.slice(1, 3), 16),
+            parseInt(color.slice(3, 5), 16),
+            parseInt(color.slice(5, 7), 16)
+          );
+          doc.rect(xPos, yPos - 2, 3, 3, 'F');
+          
+          // Draw legend text
+          doc.setTextColor(0, 0, 0);
+          doc.text(`${category} (${volume.toFixed(2)}L, ${percentage}%)`, xPos + 5, yPos);
+          
+          // Move to next column/row
+          legendCol++;
+          if (legendCol >= 4) {
+            legendCol = 0;
+            legendRow++;
+          }
+        });
+
+        // Update yPosition after legend
+        const legendRowsNeeded = Math.ceil(sortedCategoriesForChart.length / 4);
+        yPosition += (legendRowsNeeded * 6) + 3;
       }
 
       // ===== FORCE PAGE BREAK BEFORE PRODUCT SECTION =====
