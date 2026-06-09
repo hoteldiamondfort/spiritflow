@@ -613,13 +613,17 @@ export default function StockInsightPage() {
           const chartImage = canvas.toDataURL('image/png', 0.95);
           
           // Calculate chart position - CENTERED on page
-          const chartWidth = 130;
-          const chartHeight = 97.5;
+          // Use larger size: 140mm width (was 130mm)
+          const chartWidth = 140;
+          const chartHeight = 105;
           const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
+          
+          // Add 2-line gap on top
+          yPosition += 2;
           
           // Add chart to PDF
           doc.addImage(chartImage, 'PNG', chartX, yPosition, chartWidth, chartHeight);
-          yPosition += chartHeight + 5;
+          yPosition += chartHeight + 2; // 2-line gap on bottom only
 
         } catch (error) {
           console.error('Error generating pie chart:', error);
