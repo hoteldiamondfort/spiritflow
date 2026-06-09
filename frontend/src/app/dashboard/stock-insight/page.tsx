@@ -164,15 +164,18 @@ export default function StockInsightPage() {
     return `${bottles} Bottles`;
   };
 
-  // PDF display (short format with comma separator)
-  const getStockDisplayPDF = (ml: number, mlPerBottle: number): string => {
+  // PDF display functions - return separate values for 2-row display
+  const getStockDisplayPDF = (ml: number, mlPerBottle: number): { bottles: string; pegs: string } => {
     const { bottles, pegs } = convertFromML(ml, mlPerBottle);
-    return `${bottles} B, ${pegs} P`;
+    return { 
+      bottles: bottles.toString(), 
+      pegs: pegs.toString() 
+    };
   };
 
   const getWarehouseDisplayPDF = (ml: number, mlPerBottle: number): string => {
     const { bottles } = convertFromML(ml, mlPerBottle);
-    return `${bottles} B`;
+    return bottles.toString();
   };
 
   const calculateTotals = () => {
@@ -427,22 +430,48 @@ export default function StockInsightPage() {
         });
         doc.setTextColor(0, 0, 0);
 
-        // Warehouse (right-aligned)
+        // Warehouse (right-aligned, 2-row format)
         doc.setFont('Helvetica', 'normal');
         doc.setFontSize(7);
-        const warehouseText = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
-        doc.text(warehouseText, col.warehouse + colWidth.warehouse - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
+        const warehouseBottles = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
+        doc.text(warehouseBottles, col.warehouse + colWidth.warehouse - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(5.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Bottles', col.warehouse + colWidth.warehouse - 1, yPosition + rowHeight / 2 + 1, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
 
-        // Druvam (right-aligned)
-        const druvamText = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
-        doc.text(druvamText, col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
+        // Druvam (right-aligned, 2-row format)
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7);
+        const druvamStk = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
+        const druvamText = `${druvamStk.bottles} | ${druvamStk.pegs}`;
+        doc.text(druvamText, col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(5.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Bottles | Pegs', col.druvam + colWidth.druvam - 1, yPosition + rowHeight / 2 + 1, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
 
-        // Spadikam (right-aligned)
-        const spadikamText = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
-        doc.text(spadikamText, col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
+        // Spadikam (right-aligned, 2-row format)
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7);
+        const spadikamStk = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
+        const spadikamText = `${spadikamStk.bottles} | ${spadikamStk.pegs}`;
+        doc.text(spadikamText, col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 - 1.2, { align: 'right' });
+        
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(5.5);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Bottles | Pegs', col.spadikam + colWidth.spadikam - 1, yPosition + rowHeight / 2 + 1, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
 
-        // Total (right-aligned) - compact format
-        const totalText = `${(item.total_quantity_ml / 1000).toFixed(2)}L`;
+        // Total (right-aligned) - compact format with space before L
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7);
+        const totalText = `${(item.total_quantity_ml / 1000).toFixed(2)} L`;
         doc.text(totalText, col.total + colWidth.total - 1, yPosition + rowHeight / 2 + 0.5, { align: 'right' });
 
         yPosition += rowHeight;
@@ -464,11 +493,30 @@ export default function StockInsightPage() {
       doc.line(col.spadikam, yPosition, col.spadikam, yPosition + totalsHeight);
       doc.line(col.total, yPosition, col.total, yPosition + totalsHeight);
 
-      doc.text('TOTAL', col.product + 1, yPosition + 3.5);
-      doc.text(`${totals.warehouseBottles} B`, col.warehouse + colWidth.warehouse - 1, yPosition + 3.5, { align: 'right' });
-      doc.text(`${totals.druvamBottles} B, ${totals.druvamPegs} P`, col.druvam + colWidth.druvam - 1, yPosition + 3.5, { align: 'right' });
-      doc.text(`${totals.spadikamBottles} B, ${totals.spadikamPegs} P`, col.spadikam + colWidth.spadikam - 1, yPosition + 3.5, { align: 'right' });
-      doc.text(`${totals.totalLitres}L`, col.total + colWidth.total - 1, yPosition + 3.5, { align: 'right' });
+      doc.text('TOTAL', col.product + 1, yPosition + totalsHeight / 2 + 1.2, { align: 'left' });
+      
+      // Warehouse total (2-row format, bold)
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text(`${totals.warehouseBottles}`, col.warehouse + colWidth.warehouse - 1, yPosition + totalsHeight / 2 - 1, { align: 'right' });
+      doc.setFontSize(5.5);
+      doc.text('Bottles', col.warehouse + colWidth.warehouse - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
+      
+      // Druvam total (2-row format, bold)
+      doc.setFontSize(7);
+      doc.text(`${totals.druvamBottles} | ${totals.druvamPegs}`, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 - 1, { align: 'right' });
+      doc.setFontSize(5.5);
+      doc.text('Bottles | Pegs', col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
+      
+      // Spadikam total (2-row format, bold)
+      doc.setFontSize(7);
+      doc.text(`${totals.spadikamBottles} | ${totals.spadikamPegs}`, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 - 1, { align: 'right' });
+      doc.setFontSize(5.5);
+      doc.text('Bottles | Pegs', col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
+      
+      // Total (bold with space before L)
+      doc.setFontSize(7);
+      doc.text(`${totals.totalLitres} L`, col.total + colWidth.total - 1, yPosition + totalsHeight / 2 + 0.5, { align: 'right' });
 
       // ===== FOOTER =====
       doc.setDrawColor(33, 150, 243);
