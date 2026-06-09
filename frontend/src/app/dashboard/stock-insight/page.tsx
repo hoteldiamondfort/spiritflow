@@ -268,14 +268,15 @@ export default function StockInsightPage() {
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 3;
 
-      // ===== TABLE CONFIG (Product: 36.67% +10%, rest equal width) =====
+      // ===== TABLE CONFIG (Product: 40%, Stock columns: 15% each = 60%) =====
       const tableWidth = pageWidth - margin * 2;
+      const stockColumnsWidth = tableWidth * 0.6;
       const colWidth = {
-        product: (tableWidth / 3) * 1.1,    // 1/3 + 10% more = ~40% of width
-        warehouse: (tableWidth * 0.6) / 4,  // All stock columns equal width
-        druvam: (tableWidth * 0.6) / 4,     // All stock columns equal width
-        spadikam: (tableWidth * 0.6) / 4,   // All stock columns equal width
-        total: (tableWidth * 0.6) / 4       // All stock columns equal width
+        product: tableWidth * 0.4,           // 40% of width
+        warehouse: stockColumnsWidth / 4,    // 15% each (equal)
+        druvam: stockColumnsWidth / 4,       // 15% each (equal)
+        spadikam: stockColumnsWidth / 4,     // 15% each (equal)
+        total: stockColumnsWidth / 4         // 15% each (equal)
       };
 
       const col = {
@@ -434,7 +435,7 @@ export default function StockInsightPage() {
         });
         doc.setTextColor(0, 0, 0);
 
-        // Warehouse (right-aligned, 2-row format with proper spacing and vertical centering)
+        // Warehouse (strict right-align, minimal spacing, 6pt uniform black)
         const warehouseRowHeight = rowHeight;
         const warehouseCenterY = yPosition + warehouseRowHeight / 2;
         
@@ -444,11 +445,11 @@ export default function StockInsightPage() {
         const warehouseBottles = getWarehouseDisplayPDF(item.breakdown.warehouse, item.ml_per_bottle);
         const warehouseWord = parseInt(warehouseBottles) === 1 ? 'BOTTLE' : 'BOTTLES';
         
-        // First row: quantity + unit (both 6pt, black, regular, right-aligned, separated by space)
+        // Single row: quantity + unit (both 6pt, black, regular, STRICTLY right-aligned)
         const warehouseFullDisplay = warehouseBottles + ' ' + warehouseWord;
-        doc.text(warehouseFullDisplay, col.warehouse + colWidth.warehouse - 1, warehouseCenterY - 1.8, { align: 'right' });
+        doc.text(warehouseFullDisplay, col.warehouse + colWidth.warehouse - 1, warehouseCenterY, { align: 'right' });
 
-        // Druvam (right-aligned, 2-row format with spacing and vertical centering)
+        // Druvam (strict right-align, tighter spacing, 6pt uniform black)
         const druvamRowHeight = rowHeight;
         const druvamCenterY = yPosition + druvamRowHeight / 2;
         
@@ -458,15 +459,15 @@ export default function StockInsightPage() {
         const druvamStk = getStockDisplayPDF(item.breakdown.druvam, item.ml_per_bottle);
         const druvamBottleWord = parseInt(druvamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
         
-        // First row: Bottles (quantity + unit, both 6pt, black, regular, right-aligned)
+        // First row: Bottles (6pt, black, regular, STRICTLY right-aligned)
         const druvamBottleFullDisplay = druvamStk.bottles + ' ' + druvamBottleWord;
-        doc.text(druvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY - 3.2, { align: 'right' });
+        doc.text(druvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY - 2.5, { align: 'right' });
         
-        // Second row: Pegs (quantity + unit, both 6pt, black, regular, right-aligned) (with spacing gap)
+        // Second row: Pegs (6pt, black, regular, STRICTLY right-aligned) (tighter gap)
         const druvamPegsFullDisplay = druvamStk.pegs + ' PEGS';
-        doc.text(druvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY + 1.5, { align: 'right' });
+        doc.text(druvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, druvamCenterY + 0.8, { align: 'right' });
 
-        // Spadikam (right-aligned, 2-row format with spacing and vertical centering)
+        // Spadikam (strict right-align, tighter spacing, 6pt uniform black)
         const spadikamRowHeight = rowHeight;
         const spadikamCenterY = yPosition + spadikamRowHeight / 2;
         
@@ -476,17 +477,17 @@ export default function StockInsightPage() {
         const spadikamStk = getStockDisplayPDF(item.breakdown.spadikam, item.ml_per_bottle);
         const spadikamBottleWord = parseInt(spadikamStk.bottles) === 1 ? 'BOTTLE' : 'BOTTLES';
         
-        // First row: Bottles (quantity + unit, both 6pt, black, regular, right-aligned)
+        // First row: Bottles (6pt, black, regular, STRICTLY right-aligned)
         const spadikamBottleFullDisplay = spadikamStk.bottles + ' ' + spadikamBottleWord;
-        doc.text(spadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY - 3.2, { align: 'right' });
+        doc.text(spadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY - 2.5, { align: 'right' });
         
-        // Second row: Pegs (quantity + unit, both 6pt, black, regular, right-aligned) (with spacing gap)
+        // Second row: Pegs (6pt, black, regular, STRICTLY right-aligned) (tighter gap)
         const spadikamPegsFullDisplay = spadikamStk.pegs + ' PEGS';
-        doc.text(spadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY + 1.5, { align: 'right' });
+        doc.text(spadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, spadikamCenterY + 0.8, { align: 'right' });
 
-        // Total (right-aligned, centered - uniform 6pt, black, regular)
+        // Total (BOLD quantity + unit, 6pt, black, STRICTLY right-aligned)
         const totalCenterY = yPosition + rowHeight / 2;
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Helvetica', 'bold');
         doc.setFontSize(6);
         doc.setTextColor(0, 0, 0);
         const totalValue = (item.total_quantity_ml / 1000).toFixed(2);
@@ -516,38 +517,38 @@ export default function StockInsightPage() {
       doc.setFontSize(8);
       doc.text('TOTAL', col.product + 1, yPosition + totalsHeight / 2 + 1.2, { align: 'left' });
       
-      // Warehouse total (uniform 6pt, black, regular, right-aligned)
-      doc.setFont('Helvetica', 'normal');
+      // Warehouse total (BOLD, 6pt, black, STRICTLY right-aligned)
+      doc.setFont('Helvetica', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalWarehouseWord = totals.warehouseBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalWarehouseFullDisplay = totals.warehouseBottles + ' ' + totalWarehouseWord;
       doc.text(totalWarehouseFullDisplay, col.warehouse + colWidth.warehouse - 1, yPosition + totalsHeight / 2, { align: 'right' });
       
-      // Druvam total (uniform 6pt, black, regular, 2-row format, right-aligned, centered vertically with gap)
-      doc.setFont('Helvetica', 'normal');
+      // Druvam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, tighter gap)
+      doc.setFont('Helvetica', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalDruvamWord = totals.druvamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalDruvamBottleFullDisplay = totals.druvamBottles + ' ' + totalDruvamWord;
-      doc.text(totalDruvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 - 2, { align: 'right' });
+      doc.text(totalDruvamBottleFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 - 1.8, { align: 'right' });
       
       const totalDruvamPegsFullDisplay = totals.druvamPegs.toFixed(2) + ' PEGS';
-      doc.text(totalDruvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
+      doc.text(totalDruvamPegsFullDisplay, col.druvam + colWidth.druvam - 1, yPosition + totalsHeight / 2 + 1.0, { align: 'right' });
       
-      // Spadikam total (uniform 6pt, black, regular, 2-row format, right-aligned, centered vertically with gap)
-      doc.setFont('Helvetica', 'normal');
+      // Spadikam total (BOLD, 6pt, black, 2-row format, STRICTLY right-aligned, tighter gap)
+      doc.setFont('Helvetica', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalSpadikamWord = totals.spadikamBottles === 1 ? 'BOTTLE' : 'BOTTLES';
       const totalSpadikamBottleFullDisplay = totals.spadikamBottles + ' ' + totalSpadikamWord;
-      doc.text(totalSpadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 - 2, { align: 'right' });
+      doc.text(totalSpadikamBottleFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 - 1.8, { align: 'right' });
       
       const totalSpadikamPegsFullDisplay = totals.spadikamPegs.toFixed(2) + ' PEGS';
-      doc.text(totalSpadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.5, { align: 'right' });
+      doc.text(totalSpadikamPegsFullDisplay, col.spadikam + colWidth.spadikam - 1, yPosition + totalsHeight / 2 + 1.0, { align: 'right' });
       
-      // Total (uniform 6pt, black, regular, right-aligned, centered vertically)
-      doc.setFont('Helvetica', 'normal');
+      // Total (BOLD, 6pt, black, STRICTLY right-aligned)
+      doc.setFont('Helvetica', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(0, 0, 0);
       const totalLitresFullDisplay = totals.totalLitres + ' LITRE';
