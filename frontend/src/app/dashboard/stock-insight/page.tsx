@@ -573,7 +573,7 @@ export default function StockInsightPage() {
         try {
           // Create SQUARE canvas for pie chart - 1:1 aspect ratio
           const dpr = 4;
-          const canvasSize = 600; // Square: 600x600
+          const canvasSize = 380; // Reduced from 600 to fit radius 175 with minimal margins
           const canvas = document.createElement('canvas');
           canvas.width = canvasSize * dpr;
           canvas.height = canvasSize * dpr;
@@ -587,7 +587,7 @@ export default function StockInsightPage() {
           // Draw pie chart with anti-aliasing - centered in square canvas
           const centerX = canvasSize / 2;
           const centerY = canvasSize / 2;
-          const radius = 175;
+          const radius = 175; // Kept at 175
           let currentAngle = -Math.PI / 2;
 
           // Draw pie slices
