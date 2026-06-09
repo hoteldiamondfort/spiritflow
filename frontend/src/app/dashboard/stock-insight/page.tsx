@@ -618,12 +618,12 @@ export default function StockInsightPage() {
           const chartSize = 130;
           const chartX = margin + (pageWidth - margin * 2 - chartSize) / 2;
           
-          // Add 2-line gap on top
-          yPosition += 2;
+          // Add 1-line gap on top (half of 2)
+          yPosition += 1;
           
           // Add chart to PDF (square)
           doc.addImage(chartImage, 'PNG', chartX, yPosition, chartSize, chartSize);
-          yPosition += chartSize + 2; // 2-line gap on bottom only
+          yPosition += chartSize + 1; // 1-line gap on bottom only (half of 2)
 
         } catch (error) {
           console.error('Error generating pie chart:', error);
