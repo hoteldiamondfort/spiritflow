@@ -677,21 +677,22 @@ export default function StockInsightPage() {
         // Update yPosition after legend
         const legendRowsNeeded = Math.ceil(sortedCategoriesForChart.length / 4);
         yPosition += (legendRowsNeeded * 6) + 3;
-
-        // ===== FOOTER BLUE LINE ON PAGE 1 =====
-        yPosition += 3;
-        doc.setDrawColor(33, 150, 243);
-        doc.setLineWidth(0.3);
-        doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 3;
-
-        // ===== FOOTER NOTE =====
-        doc.setFont('Courier', 'italic');
-        doc.setFontSize(6);
-        doc.setTextColor(100, 100, 100);
-        doc.text('This is a computer generated report based on the data available within the system.', margin, yPosition, { maxWidth: pageWidth - margin * 2 });
-        yPosition += 5;
       }
+
+      // ===== FOOTER (Fixed Position - Same as Page 2) =====
+      doc.setDrawColor(33, 150, 243);
+      doc.setLineWidth(0.3);
+      doc.line(margin, pageHeight - 11, pageWidth - margin, pageHeight - 11);
+
+      doc.setFont('Courier', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        'This is a computer generated report based on the data available within the system.',
+        pageWidth / 2,
+        pageHeight - 7,
+        { align: 'center' }
+      );
 
       // ===== FORCE PAGE BREAK BEFORE PRODUCT SECTION =====
       // Product section must start on new page only
