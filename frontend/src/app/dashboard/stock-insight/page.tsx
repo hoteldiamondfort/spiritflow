@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import DashboardLayout from '@/components/DashboardLayout';
 
 const PEG_SIZE_ML = 60;
@@ -103,6 +105,7 @@ export default function StockInsightPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
+      alert('Error loading data. Please refresh the page.');
     } finally {
       setLoading(false);
     }
@@ -194,14 +197,11 @@ export default function StockInsightPage() {
 
   const totals = calculateTotals();
 
-  const generatePDF = async () => {
+  const generatePDF = () => {
     try {
       setIsDownloading(true);
 
-      // Dynamically import jsPDF and autoTable
-      const { jsPDF } = await import('jspdf');
-      const autoTable = await import('jspdf-autotable');
-
+      // Create PDF document
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -210,7 +210,7 @@ export default function StockInsightPage() {
 
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 12;
+      const margin = 15;
       let yPosition = margin;
 
       // ===== HEADER SECTION =====
@@ -221,10 +221,10 @@ export default function StockInsightPage() {
 
       doc.setFontSize(14);
       doc.text('CONSOLIDATED STOCK REPORT', pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 12;
+      yPosition += 10;
 
       // ===== SEPARATOR LINE =====
-      doc.setDrawColor(0);
+      doc.setDrawColor(0, 0, 0);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 6;
 
@@ -234,20 +234,17 @@ export default function StockInsightPage() {
       const reportDate = new Date().toLocaleDateString('en-IN');
       const reportTime = new Date().toLocaleTimeString('en-IN');
 
-      // First row
       doc.text(`Date: ${reportDate}`, margin, yPosition);
       doc.text(`Report Type: Current`, pageWidth / 2, yPosition);
       yPosition += 6;
 
-      // Second row
       doc.text(`Time: ${reportTime}`, margin, yPosition);
       doc.text(`Prepared by: ${user?.name || 'System User'}`, pageWidth / 2, yPosition);
       yPosition += 8;
 
       // ===== SEPARATOR LINE =====
-      doc.setDrawColor(0);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 6;
+      yPosition += 4;
 
       // ===== TABLE DATA =====
       const tableData = filteredData.map((item) => [
@@ -277,8 +274,8 @@ export default function StockInsightPage() {
           fillColor: [240, 240, 240],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          fontSize: 10,
-          cellPadding: 3,
+          fontSize: 9,
+          cellPadding: 4,
           halign: 'center',
           valign: 'middle',
           lineColor: [0, 0, 0],
@@ -286,32 +283,33 @@ export default function StockInsightPage() {
         },
         bodyStyles: {
           textColor: [0, 0, 0],
-          fontSize: 9,
+          fontSize: 8,
           cellPadding: 3,
           lineColor: [200, 200, 200],
-          lineWidth: 0.3
+          lineWidth: 0.3,
+          halign: 'center',
+          valign: 'middle'
         },
         columnStyles: {
-          0: { halign: 'left', cellWidth: 50 },
-          1: { halign: 'center' },
-          2: { halign: 'center' },
-          3: { halign: 'center' },
-          4: { halign: 'right' }
+          0: { halign: 'left', cellWidth: 55 },
+          1: { halign: 'center', cellWidth: 30 },
+          2: { halign: 'center', cellWidth: 35 },
+          3: { halign: 'center', cellWidth: 35 },
+          4: { halign: 'right', cellWidth: 25 }
         },
         didDrawPage: (data: any) => {
-          // Page numbers
+          // Footer with page numbers
           const pageCount = (doc as any).internal.getNumberOfPages();
           const currentPage = data.pageNumber;
           const text = `Page ${currentPage} of ${pageCount}`;
           doc.setFontSize(8);
-          doc.text(text, pageWidth - margin - 20, pageHeight - 8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(text, pageWidth - margin - 15, pageHeight - 10);
         }
       });
 
       // ===== FOOTER =====
-      const finalYPosition = (doc as any).lastAutoTable?.finalY || yPosition + 100;
-      const footerY = pageHeight - 15;
-
+      const footerY = pageHeight - 18;
       doc.setDrawColor(200, 200, 200);
       doc.line(margin, footerY, pageWidth - margin, footerY);
 
@@ -330,15 +328,12 @@ export default function StockInsightPage() {
       doc.save(fileName);
 
       setIsDownloading(false);
+      console.log('✅ PDF downloaded successfully:', fileName);
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      console.error('❌ Error generating PDF:', error);
+      alert(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsDownloading(false);
     }
-  };
-
-  const handleExportPDF = () => {
-    generatePDF();
   };
 
   const handleEmail = () => {
@@ -404,12 +399,12 @@ export default function StockInsightPage() {
               ↻ REFRESH
             </button>
             <button
-              onClick={handleExportPDF}
+              onClick={generatePDF}
               style={{...styles.actionBtn, opacity: isDownloading ? 0.6 : 1}}
-              title="Download PDF"
+              title="Download PDF report"
               disabled={isDownloading}
             >
-              {isDownloading ? '⏳ DOWNLOADING...' : '📥 DOWNLOAD PDF'}
+              {isDownloading ? '⏳ GENERATING...' : '📥 DOWNLOAD PDF'}
             </button>
             <button
               onClick={handleEmail}
