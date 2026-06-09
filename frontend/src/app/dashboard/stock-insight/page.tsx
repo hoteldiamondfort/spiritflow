@@ -573,7 +573,7 @@ export default function StockInsightPage() {
         try {
           // Create SQUARE canvas for pie chart - 1:1 aspect ratio
           const dpr = 4;
-          const canvasSize = 380; // Reduced from 600 to fit radius 175 with minimal margins
+          const canvasSize = 285; // 75% of 380 (380 * 0.75 = 285)
           const canvas = document.createElement('canvas');
           canvas.width = canvasSize * dpr;
           canvas.height = canvasSize * dpr;
@@ -587,7 +587,7 @@ export default function StockInsightPage() {
           // Draw pie chart with anti-aliasing - centered in square canvas
           const centerX = canvasSize / 2;
           const centerY = canvasSize / 2;
-          const radius = 175; // Kept at 175
+          const radius = 131.25; // 75% of 175 (175 * 0.75 = 131.25)
           let currentAngle = -Math.PI / 2;
 
           // Draw pie slices
@@ -614,8 +614,8 @@ export default function StockInsightPage() {
           const chartImage = canvas.toDataURL('image/png', 0.95);
           
           // Calculate chart position - CENTERED on page
-          // Square chart: 130mm x 130mm
-          const chartSize = 130;
+          // Square chart: 97.5mm x 97.5mm (75% of 130mm)
+          const chartSize = 97.5;
           const chartX = margin + (pageWidth - margin * 2 - chartSize) / 2;
           
           // Add 1-line gap on top (half of 2)
