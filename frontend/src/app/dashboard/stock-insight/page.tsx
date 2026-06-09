@@ -244,9 +244,12 @@ export default function StockInsightPage() {
 
       yPosition = 30;
 
+      // ===== BLANK LINE FROM HEADER =====
+      yPosition += 3;
+
       // ===== TITLE (with extra gap from header) =====
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text('CONSOLIDATED STOCK INSIGHT', pageWidth / 2, yPosition, { align: 'center' });
       
@@ -288,7 +291,15 @@ export default function StockInsightPage() {
       doc.setDrawColor(33, 150, 243);
       doc.setLineWidth(0.3);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 3;
+      yPosition += 3;  // Blank line
+      yPosition += 5;  // Gap to heading
+
+      // ===== CATEGORY-WISE SUMMARY HEADING =====
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text('CATEGORY WISE SUMMARY', margin, yPosition);
+      yPosition += 5;
 
       // ===== CATEGORY-WISE SUMMARY TABLE =====
       // Calculate category totals with proper bottle conversion per product
@@ -517,11 +528,18 @@ export default function StockInsightPage() {
 
       yPosition += categoryTotalsHeight + 5;
 
-      // ===== PRODUCT-WISE DETAILS SUBHEADING =====
+      // ===== SEPARATOR =====
+      doc.setDrawColor(33, 150, 243);
+      doc.setLineWidth(0.3);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 3;  // Blank line
+      yPosition += 5;  // Gap to heading
+
+      // ===== PRODUCT-WISE DETAILS HEADING =====
       doc.setFont('Courier', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
-      doc.text('PRODUCT-WISE DETAILS', margin, yPosition);
+      doc.text('PRODUCT WISE DETAILS', margin, yPosition);
       yPosition += 5;
 
       // ===== SEPARATOR =====
