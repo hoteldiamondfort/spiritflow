@@ -569,13 +569,13 @@ export default function StockInsightPage() {
         // Calculate total for percentages
         const chartTotal = chartData.reduce((sum, item) => sum + item.value, 0);
 
-        // Generate pie chart (half-page diameter only)
+        // Generate pie chart (2.5x bigger, half-page diameter)
         try {
-          // Create canvas for pie chart only (small size)
+          // Create canvas for pie chart - 2.5x bigger
           const dpr = 4;
           const canvas = document.createElement('canvas');
-          canvas.width = 400 * dpr;
-          canvas.height = 300 * dpr;
+          canvas.width = 1000 * dpr;
+          canvas.height = 750 * dpr;
           
           const ctx = canvas.getContext('2d');
           if (!ctx) throw new Error('Canvas context not available');
@@ -584,9 +584,9 @@ export default function StockInsightPage() {
           ctx.scale(dpr, dpr);
 
           // Draw pie chart with anti-aliasing
-          const centerX = 100;
-          const centerY = 100;
-          const radius = 70;
+          const centerX = 250;
+          const centerY = 250;
+          const radius = 175;
           let currentAngle = -Math.PI / 2;
 
           // Draw pie slices
@@ -605,21 +605,16 @@ export default function StockInsightPage() {
             ctx.closePath();
             ctx.fill();
 
-            // Draw border
-            ctx.globalAlpha = 1;
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
+            // NO BORDERS - skip stroke to remove white lines between slices
             currentAngle += sliceAngle;
           });
 
           // Convert to image
           const chartImage = canvas.toDataURL('image/png', 0.95);
           
-          // Calculate chart position - CENTERED on page (half-page width)
-          const chartWidth = 90;
-          const chartHeight = 67;
+          // Calculate chart position - CENTERED on page
+          const chartWidth = 130;
+          const chartHeight = 97.5;
           const chartX = margin + (pageWidth - margin * 2 - chartWidth) / 2;
           
           // Add chart to PDF
