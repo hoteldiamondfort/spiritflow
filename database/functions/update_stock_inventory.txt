@@ -1,0 +1,70 @@
+-- ============================================================================
+-- DATABASE TRIGGER FUNCTION TO UPDATE STOCK_INVENTORY
+-- COPY & PASTE THIS ENTIRE QUERY INTO SUPABASE SQL EDITOR AND RUN
+-- ============================================================================
+
+-- Step 1: Create the trigger function
+CREATE OR REPLACE FUNCTION update_stock_inventory()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Only process STOCK_TRANSFER type for now
+  IF NEW.transaction_type = 'STOCK_TRANSFER' THEN
+    
+    -- Validate that both from and to stock points exist
+    IF NEW.from_stock_point_id IS NULL OR NEW.to_stock_point_id IS NULL THEN
+      RAISE EXCEPTION 'from_stock_point_id and to_stock_point_id are required for STOCK_TRANSFER';
+    END IF;
+
+    -- ========================================
+    -- DECREASE FROM LOCATION STOCK
+    -- ========================================
+    UPDATE stock_inventory
+    SET 
+      current_quantity_ml = current_quantity_ml - NEW.quantity_ml,
+      last_updated_on = CURRENT_TIMESTAMP
+    WHERE 
+      product_id = NEW.product_id 
+      AND stock_point_id = NEW.from_stock_point_id
+      AND current_quantity_ml >= NEW.quantity_ml;
+    
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Failed to decrease stock at %: insufficient or missing stock record', NEW.from_stock_point_id;
+    END IF;
+
+    -- ========================================
+    -- INCREASE TO LOCATION STOCK
+    -- ========================================
+    UPDATE stock_inventory
+    SET 
+      current_quantity_ml = current_quantity_ml + NEW.quantity_ml,
+      last_updated_on = CURRENT_TIMESTAMP
+    WHERE 
+      product_id = NEW.product_id 
+      AND stock_point_id = NEW.to_stock_point_id;
+    
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Failed to increase stock at %: stock record not found', NEW.to_stock_point_id;
+    END IF;
+
+    RAISE NOTICE 'Stock transfer completed: product_id=%, from=%, to=%, quantity=%ml', 
+      NEW.product_id, NEW.from_stock_point_id, NEW.to_stock_point_id, NEW.quantity_ml;
+
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Step 2: Create the trigger
+DROP TRIGGER IF EXISTS stock_transfer_trigger ON stock_transactions;
+
+CREATE TRIGGER stock_transfer_trigger
+AFTER INSERT ON stock_transactions
+FOR EACH ROW
+EXECUTE FUNCTION update_stock_inventory();
+
+-- ============================================================================
+-- DONE! Your trigger is now active!
+-- ============================================================================
+-- When you insert into stock_transactions, this trigger will automatically
+-- update stock_inventory

@@ -1,0 +1,71 @@
+-- ============================================
+-- TRIGGER FUNCTION: Auto-open next day
+-- ============================================
+-- Purpose: When a day in day_master transitions
+-- from OPEN to CLOSED, automatically create 
+-- the next day as OPEN with default values
+-- ============================================
+
+CREATE OR REPLACE FUNCTION auto_open_next_day()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- When day_status changes SPECIFICALLY from OPEN to CLOSED (safer!)
+  IF NEW.day_status = 'CLOSED' AND OLD.day_status = 'OPEN' THEN
+    
+    -- Insert next day with default values
+    INSERT INTO day_master (
+      date,
+      day_status,
+      total_liquor_sale_volume,
+      total_liquor_sale_amount,
+      closed_by,
+      closed_on
+    )
+    VALUES (
+      NEW.date + 1,
+      'OPEN',
+      0,
+      0.00,
+      NULL,
+      NULL
+    )
+    ON CONFLICT (date) DO NOTHING;
+    
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+-- TRIGGER: Attach function to day_master
+-- ============================================
+
+CREATE TRIGGER auto_open_next_day_trigger
+AFTER UPDATE ON day_master
+FOR EACH ROW
+WHEN (OLD.day_status = 'OPEN' AND NEW.day_status = 'CLOSED')
+EXECUTE FUNCTION auto_open_next_day();
+
+-- ============================================
+-- HOW TO USE
+-- ============================================
+--
+-- When you want to close a day:
+--
+-- UPDATE day_master
+-- SET day_status = 'CLOSED'
+-- WHERE date = '2026-06-07';
+--
+-- Safety checks:
+-- 1. WHEN clause: Only fires if OLD='OPEN' AND NEW='CLOSED'
+-- 2. Function: Double-checks the same condition
+-- 3. Result: Guaranteed to execute only on valid transitions
+--
+-- Result:
+-- date       | day_status
+-- ───────────┼────────────
+-- 2026-06-07 | CLOSED
+-- 2026-06-08 | OPEN  ← Auto-created!
+--
+-- ============================================

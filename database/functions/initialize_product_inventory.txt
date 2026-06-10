@@ -1,0 +1,137 @@
+-- ============================================
+-- COMPLETE TRIGGER FUNCTION
+-- ============================================
+-- Function Name: initialize_product_inventory
+-- Purpose: Automatically populate stock_inventory
+-- and outlet_inventory when a new product is created
+-- ============================================
+
+CREATE OR REPLACE FUNCTION initialize_product_inventory()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- ============================================
+  -- STEP 1: Initialize stock_inventory
+  -- ============================================
+  -- Create inventory records for all 3 stock points
+  -- with initial quantity of 0 ML
+  
+  INSERT INTO stock_inventory (
+    product_id, 
+    stock_point_id, 
+    current_quantity_ml, 
+    last_updated_by
+  )
+  VALUES 
+    (NEW.product_id, 'warehouse', 0, NEW.created_by),
+    (NEW.product_id, 'druvam', 0, NEW.created_by),
+    (NEW.product_id, 'spadikam', 0, NEW.created_by);
+  
+  -- ============================================
+  -- STEP 2: Initialize outlet_inventory
+  -- ============================================
+  -- Create sales rate records for all 3 outlets
+  -- with ZERO rates (manager will set actual rates)
+  
+  INSERT INTO outlet_inventory (
+    product_id, 
+    outlet_id, 
+    sales_rate_per_peg, 
+    sales_rate_per_bottle, 
+    product_status, 
+    peg_sale_allowed, 
+    last_updated_by
+  )
+  VALUES 
+    -- Druvam Outlet
+    (
+      NEW.product_id, 
+      'druvam_outlet', 
+      0.00, 
+      0.00, 
+      'ACTIVE', 
+      CASE WHEN NEW.category_name IN ('BEER', 'SODA', 'WATER') THEN false ELSE true END, 
+      NEW.created_by
+    ),
+    -- Spadikam Outlet
+    (
+      NEW.product_id, 
+      'spadikam_outlet', 
+      0.00, 
+      0.00, 
+      'ACTIVE', 
+      CASE WHEN NEW.category_name IN ('BEER', 'SODA', 'WATER') THEN false ELSE true END, 
+      NEW.created_by
+    ),
+    -- No. 20 Outlet (Virtual)
+    (
+      NEW.product_id, 
+      'no20_outlet', 
+      0.00, 
+      0.00, 
+      'ACTIVE', 
+      CASE WHEN NEW.category_name IN ('BEER', 'SODA', 'WATER') THEN false ELSE true END, 
+      NEW.created_by
+    );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================
+-- TRIGGER DEFINITION
+-- ============================================
+-- Trigger Name: initialize_product_inventory_trigger
+-- Event: AFTER INSERT ON products
+-- For Each: ROW
+-- Execute: initialize_product_inventory()
+
+CREATE TRIGGER initialize_product_inventory_trigger
+AFTER INSERT ON products
+FOR EACH ROW
+EXECUTE FUNCTION initialize_product_inventory();
+
+-- ============================================
+-- DOCUMENTATION
+-- ============================================
+-- 
+-- Trigger Behavior:
+-- ─────────────────
+-- When a new product is inserted into the products table,
+-- this trigger automatically:
+--
+-- 1. Creates 3 stock_inventory records
+--    ├─ One for each stock point (warehouse, druvam, spadikam)
+--    └─ Initial quantity: 0 ML
+--
+-- 2. Creates 3 outlet_inventory records
+--    ├─ One for each outlet (druvam_outlet, spadikam_outlet, no20_outlet)
+--    ├─ Initial sales_rate_per_peg: 0.00
+--    ├─ Initial sales_rate_per_bottle: 0.00
+--    ├─ product_status: ACTIVE
+--    └─ peg_sale_allowed: 
+--       • FALSE for: BEER, SODA, WATER
+--       • TRUE for: All other categories
+--
+-- Manager Action Required:
+-- ─────────────────────────
+-- After product creation, the manager must:
+-- 1. Navigate to product pricing configuration
+-- 2. Set sales_rate_per_peg for each outlet
+-- 3. Set sales_rate_per_bottle for each outlet
+-- 4. Sales will then be enabled for the product
+--
+-- Data Flow:
+-- ──────────
+-- Product Creation
+--   ↓
+-- Trigger Fires
+--   ├─ Creates stock_inventory (0 ML)
+--   └─ Creates outlet_inventory (0.00 rates)
+--   ↓
+-- Manager Sets Rates
+--   ├─ Updates sales_rate_per_peg
+--   └─ Updates sales_rate_per_bottle
+--   ↓
+-- Product Ready for Sales
+--
+-- ============================================
