@@ -10,10 +10,8 @@ const STOCK_POINTS = [
   { id: 'spadikam', name: 'SPADIKAM' }
 ];
 
-const ADJUSTMENT_OPTIONS = [
-  { id: 'CLOSING_STOCK', name: 'CLOSING STOCK' },
-  { id: 'CORRECTION', name: 'CORRECTION' }
-];
+// Adjustment type is now fixed to CORRECTION only
+const ADJUSTMENT_TYPE = 'CORRECTION';
 
 const PEG_SIZE_ML = 60;
 
@@ -63,7 +61,6 @@ export default function StockAdjustmentPage() {
 
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [selectedStockPoint, setSelectedStockPoint] = useState<StockPointId | ''>('');
-  const [selectedAdjustmentOption, setSelectedAdjustmentOption] = useState('');
   const [adjustmentItems, setAdjustmentItems] = useState<AdjustmentItem[]>([]);
   const [reason, setReason] = useState('');
 
@@ -241,11 +238,6 @@ export default function StockAdjustmentPage() {
       return;
     }
 
-    if (!selectedAdjustmentOption) {
-      setErrorMessage('Please select adjustment option');
-      return;
-    }
-
     const hasChanges = adjustmentItems.some(item => item.adjusted_ml !== item.current_ml);
     if (!hasChanges) {
       setErrorMessage('No changes made to stock');
@@ -255,7 +247,7 @@ export default function StockAdjustmentPage() {
     setConfirmationData({
       date: selectedDate,
       stockPoint: selectedStockPoint,
-      adjustmentOption: selectedAdjustmentOption,
+      adjustmentType: ADJUSTMENT_TYPE,
       items: adjustmentItems.filter((item: AdjustmentItem) => item.adjusted_ml !== item.current_ml),
       reason
     });
@@ -277,7 +269,7 @@ export default function StockAdjustmentPage() {
         body: JSON.stringify({
           date: confirmationData.date,
           stock_point_id: confirmationData.stockPoint,
-          adjustment_type: confirmationData.adjustmentOption,
+          adjustment_type: ADJUSTMENT_TYPE,
           items: confirmationData.items.map((item: AdjustmentItem) => ({
             product_id: item.product_id,
             current_quantity_ml: item.current_ml,
@@ -298,7 +290,6 @@ export default function StockAdjustmentPage() {
       setShowConfirmation(false);
       setSelectedDate(getTodayDate());
       setSelectedStockPoint('');
-      setSelectedAdjustmentOption('');
       setReason('');
       setAdjustmentItems([]);
       setSuccessMessage(`✅ Stock adjustment successful! ${confirmationData.items.length} product(s) adjusted.`);
@@ -386,10 +377,6 @@ export default function StockAdjustmentPage() {
                     {STOCK_POINTS.find(s => s.id === confirmationData.stockPoint)?.name}
                   </span>
                 </div>
-                <div style={styles.detailRow}>
-                  <span style={styles.detailLabel}>Type:</span>
-                  <span style={styles.detailValue}>{confirmationData.adjustmentOption}</span>
-                </div>
               </div>
 
               <div style={styles.divider}></div>
@@ -400,14 +387,8 @@ export default function StockAdjustmentPage() {
                   <thead>
                     <tr style={styles.tableHeader}>
                       <th style={{...styles.th, width: '25%'}}>PRODUCT</th>
-                      {confirmationData.adjustmentOption === 'CORRECTION' ? (
-                        <>
-                          <th style={{...styles.th, width: '25%'}}>PREVIOUS STOCK</th>
-                          <th style={{...styles.th, width: '25%'}}>CHANGED TO</th>
-                        </>
-                      ) : (
-                        <th style={{...styles.th, width: '50%'}}>ACTUAL PHYSICAL STOCK</th>
-                      )}
+                      <th style={{...styles.th, width: '25%'}}>PREVIOUS STOCK</th>
+                      <th style={{...styles.th, width: '25%'}}>CHANGED TO</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -419,20 +400,12 @@ export default function StockAdjustmentPage() {
                             {item.product_name}
                           </div>
                         </td>
-                        {confirmationData.adjustmentOption === 'CORRECTION' ? (
-                          <>
-                            <td style={{...styles.td, color: '#666'}}>
-                              {getPreviousFormat(item, confirmationData.stockPoint)}
-                            </td>
-                            <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
-                              {getDisplayFormat(item, confirmationData.stockPoint)}
-                            </td>
-                          </>
-                        ) : (
-                          <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
-                            {getDisplayFormat(item, confirmationData.stockPoint)}
-                          </td>
-                        )}
+                        <td style={{...styles.td, color: '#666'}}>
+                          {getPreviousFormat(item, confirmationData.stockPoint)}
+                        </td>
+                        <td style={{...styles.td, color: '#2196F3', fontWeight: 'bold'}}>
+                          {getDisplayFormat(item, confirmationData.stockPoint)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -484,20 +457,6 @@ export default function StockAdjustmentPage() {
                   <option value="">-- SELECT STOCK POINT --</option>
                   {STOCK_POINTS.map(point => (
                     <option key={point.id} value={point.id}>{point.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>ADJUSTMENT TYPE *</label>
-                <select
-                  value={selectedAdjustmentOption}
-                  onChange={(e) => setSelectedAdjustmentOption(e.target.value)}
-                  style={{...styles.select, color: selectedAdjustmentOption ? '#1a1a1a' : '#aaa'}}
-                >
-                  <option value="">-- SELECT ADJUSTMENT TYPE --</option>
-                  {ADJUSTMENT_OPTIONS.map(option => (
-                    <option key={option.id} value={option.id}>{option.name}</option>
                   ))}
                 </select>
               </div>
@@ -578,7 +537,6 @@ export default function StockAdjustmentPage() {
                 onClick={() => {
                   setSelectedDate(getTodayDate());
                   setSelectedStockPoint('');
-                  setSelectedAdjustmentOption('');
                   setReason('');
                   setAdjustmentItems([]);
                   setErrorMessage('');
